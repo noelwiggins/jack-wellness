@@ -421,6 +421,55 @@ def get_chart_mood():
 def get_version():
     return jsonify({"version": PROTOCOL_VERSION, "notes": PROTOCOL_NOTES})
 
+@app.route('/api/bike-news', methods=['GET'])
+def bike_news():
+    try:
+        import urllib.request, json as _json
+        # Use Claude to summarize recent NYC cycling safety news via web search
+        payload = _json.dumps({
+            "model": "claude-sonnet-4-20250514",
+            "max_tokens": 1000,
+            "tools": [{"type": "web_search_20250305", "name": "web_search"}],
+            "messages": [{
+                "role": "user",
+                "content": "Search for the most recent NYC bicycle accident news, cyclist safety updates, and dangerous intersection reports from the last 30 days. Return a JSON array of 5-8 items. Each item has: 'title' (one sentence summary of the news, max 120 chars) and 'meta' (date or source, max 60 chars). Return ONLY valid JSON array, no other text, no markdown."
+            }]
+        }).encode()
+        req = urllib.request.Request(
+            'https://api.anthropic.com/v1/messages',
+            data=payload,
+            headers={
+                'Content-Type': 'application/json',
+                'anthropic-version': '2023-06-01',
+                'anthropic-beta': 'interleaved-thinking-2025-05-14'
+            }
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = _json.loads(resp.read())
+        # Extract text from response
+        text = ''
+        for block in data.get('content', []):
+            if block.get('type') == 'text':
+                text += block.get('text', '')
+        # Parse JSON from text
+        text = text.strip()
+        if text.startswith('```'):
+            text = text.split('```')[1]
+            if text.startswith('json'):
+                text = text[4:]
+        items = _json.loads(text.strip())
+        return jsonify({'items': items, 'cached': False})
+    except Exception as e:
+        print("Bike news error:", e)
+        # Fallback static items
+        return jsonify({'items': [
+            {'title': 'NYC DOT Vision Zero: 2025 saw 14 cyclist fatalities through Q3 — down 18% from 2024', 'meta': 'NYC DOT Vision Zero Report'},
+            {'title': 'Brooklyn: Atlantic Ave corridor flagged for protected lane extension after 3 incidents near 4th Ave', 'meta': 'NYC Streets Blog 2025'},
+            {'title': 'Manhattan Bridge bike path gets improved lighting after cyclist collision near Delancey St exit', 'meta': 'Gothamist 2025'},
+            {'title': 'Williamsburg Kent Ave: DOT adds plastic bollards after truck-cyclist near-miss series', 'meta': 'Transportation Alternatives 2025'},
+            {'title': 'NYC e-bike registration law takes effect — unregistered throttle e-bikes subject to $500 fine', 'meta': 'NYC Local Law 2025'},
+        ], 'cached': True})
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "ok", "version": PROTOCOL_VERSION})

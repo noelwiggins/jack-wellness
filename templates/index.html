@@ -6,6 +6,8 @@
 <title>Jack's Wellness Protocol</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 :root {
   --bg:#0D1410;--bg2:#111815;--bg3:#161E18;
@@ -87,6 +89,31 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .sh-tms{background:linear-gradient(90deg,rgba(76,175,107,.1),transparent);border-bottom:1px solid var(--border)}
 .sh-evening{background:linear-gradient(90deg,rgba(91,168,216,.06),transparent);border-bottom:1px solid var(--border)}
 .sh-recovery{background:linear-gradient(90deg,rgba(224,100,50,.08),transparent);border-bottom:1px solid var(--border)}
+.bike-section{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+.bike-section-title{font-family:'Playfair Display',serif;font-size:15px;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.bike-check-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(42,61,44,.3)}
+.bike-check-item:last-child{border-bottom:none}
+.bike-check-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--green);flex-shrink:0;margin-top:2px;cursor:pointer}
+.bike-check-label{font-size:13px;color:var(--text2);line-height:1.4;cursor:pointer}
+.bike-check-label span{display:block;font-size:11px;color:var(--text3);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.hazard-item{padding:10px 12px;margin-bottom:8px;background:var(--bg3);border-radius:8px;border-left:3px solid}
+.hazard-high{border-color:#e05050}
+.hazard-med{border-color:#e09050}
+.hazard-name{font-size:13px;font-weight:600;color:var(--text1);margin-bottom:2px}
+.hazard-desc{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;line-height:1.4}
+.hazard-badge{display:inline-block;font-size:9px;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:4px;margin-bottom:4px;font-weight:700;letter-spacing:.5px}
+.hazard-badge.high{background:rgba(224,80,80,.15);color:#e07070}
+.hazard-badge.med{background:rgba(224,144,80,.15);color:#e0a070}
+#newsFeed{min-height:80px}
+.news-item{padding:10px 12px;margin-bottom:8px;background:var(--bg3);border-radius:8px;border-left:3px solid var(--green-glow)}
+.news-item-title{font-size:12px;color:var(--text2);line-height:1.4;margin-bottom:4px}
+.news-item-meta{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.news-loading{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;padding:12px 0}
+.bike-ready-bar{background:var(--bg3);border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.bike-ready-pct{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:var(--green)}
+.bike-ready-label{font-size:12px;color:var(--text3)}
+.bike-reset-btn{font-size:10px;font-family:'JetBrains Mono',monospace;padding:6px 12px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text3);cursor:pointer}
+#bikeMap{height:260px;border-radius:10px;overflow:hidden;margin-bottom:6px;border:1px solid var(--border)}
 .sh-mood{background:linear-gradient(90deg,rgba(255,215,0,.05),transparent);border-bottom:1px solid var(--border)}
 .check-item{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;cursor:pointer;transition:background .15s;border-bottom:1px solid rgba(42,61,44,.5);background:var(--card);position:relative}
 .check-item:last-child{border-bottom:none}
@@ -170,6 +197,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
     <button class="nav-tab active" onclick="switchView('today',this)">TODAY</button>
     <button class="nav-tab" onclick="switchView('stats',this)">STATS</button>
     <button class="nav-tab" onclick="switchView('history',this)">LOG</button>
+    <button class="nav-tab" onclick="switchView('bike',this);initBikeView()">🚲</button>
   </div>
 </nav>
 
@@ -265,6 +293,156 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
     <div class="chart-subtitle">All recorded days — most recent first</div>
     <div id="historyTableWrap"><div class="loading">Loading...</div></div>
   </div>
+</div>
+
+<div class="view" id="view-bike">
+
+  <!-- Ready bar -->
+  <div class="bike-ready-bar">
+    <div>
+      <div class="bike-ready-pct" id="bikeReadyPct">0%</div>
+      <div class="bike-ready-label">pre-ride checklist complete</div>
+    </div>
+    <button class="bike-reset-btn" onclick="resetBikeChecks()">Reset</button>
+  </div>
+
+  <!-- Safety Checklist -->
+  <div class="bike-section">
+    <div class="bike-section-title">🪖 Pre-Ride Safety Checklist</div>
+
+    <div class="bike-check-item">
+      <input type="checkbox" id="bc1" onchange="updateBikeReady()">
+      <label class="bike-check-label" for="bc1">Helmet — properly fitted and buckled
+        <span>Straps form a V under each ear · chin strap snug (2 fingers fit) · no more than 2 finger-widths above eyebrows</span>
+      </label>
+    </div>
+    <div class="bike-check-item">
+      <input type="checkbox" id="bc2" onchange="updateBikeReady()">
+      <label class="bike-check-label" for="bc2">Front and rear lights ON (required by NYC law after dark, strongly recommended always)
+        <span>White front · red rear flashing · replace batteries weekly if riding daily</span>
+      </label>
+    </div>
+    <div class="bike-check-item">
+      <input type="checkbox" id="bc3" onchange="updateBikeReady()">
+      <label class="bike-check-label" for="bc3">Tire pressure checked — not flat or low
+        <span>Squeeze both tires firmly · should feel solid · low tires increase blowout risk and reduce control on wet pavement</span>
+      </label>
+    </div>
+    <div class="bike-check-item">
+      <input type="checkbox" id="bc4" onchange="updateBikeReady()">
+      <label class="bike-check-label" for="bc4">Brakes tested — both working firmly before leaving
+        <span>Squeeze each brake lever · wheel should stop immediately · if lever hits handlebar, brakes need adjustment</span>
+      </label>
+    </div>
+    <div class="bike-check-item">
+      <input type="checkbox" id="bc5" onchange="updateBikeReady()">
+      <label class="bike-check-label" for="bc5">Visible clothing — bright or reflective layer
+        <span>NYC cycling fatalities are heavily correlated with low visibility · bright top or reflective vest especially in low light</span>
+      </label>
+    </div>
+    <div class="bike-check-item">
+      <input type="checkbox" id="bc6" onchange="updateBikeReady()">
+      <label class="bike-check-label" for="bc6">Phone charged and route in mind
+        <span>Don't navigate with phone in hand · plan route before leaving · share location with someone for long rides</span>
+      </label>
+    </div>
+    <div class="bike-check-item">
+      <input type="checkbox" id="bc7" onchange="updateBikeReady()">
+      <label class="bike-check-label" for="bc7">Earphones check — one ear only or none
+        <span>NYC law prohibits both ears covered while cycling · one earbud max · must hear horns, sirens, and shouting</span>
+      </label>
+    </div>
+    <div class="bike-check-item">
+      <input type="checkbox" id="bc8" onchange="updateBikeReady()">
+      <label class="bike-check-label" for="bc8">Hydration — water bottle filled
+        <span>Especially critical post-sauna or on hot days · dehydration impairs reaction time and judgment</span>
+      </label>
+    </div>
+    <div class="bike-check-item">
+      <input type="checkbox" id="bc9" onchange="updateBikeReady()">
+      <label class="bike-check-label" for="bc9">Guanfacine awareness — blood pressure note
+        <span>Guanfacine lowers BP · hard braking or sudden cold water exposure can cause brief dizziness · ride conservatively in first 10 min</span>
+      </label>
+    </div>
+    <div class="bike-check-item">
+      <input type="checkbox" id="bc10" onchange="updateBikeReady()">
+      <label class="bike-check-label" for="bc10">Lock secured on bike (for street riding)
+        <span>U-lock through rear wheel + frame to fixed object · cable lock for front wheel · Citi Bike: check dock release before leaving</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Hazard Map -->
+  <div class="bike-section">
+    <div class="bike-section-title">🗺️ Known Dangerous Intersections — Brooklyn & Manhattan</div>
+    <div id="bikeMap"></div>
+    <div style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-bottom:12px">🔴 High risk &nbsp;🟠 Elevated risk · tap pins for details</div>
+
+    <div class="hazard-badge high">🔴 HIGH RISK</div>
+    <div class="hazard-item hazard-high">
+      <div class="hazard-name">Atlantic Ave & 4th Ave, Brooklyn</div>
+      <div class="hazard-desc">Wide multi-lane intersection · high truck volume · multiple fatalities historically · protected lane ends abruptly</div>
+    </div>
+    <div class="hazard-item hazard-high">
+      <div class="hazard-name">Eastern Pkwy & Washington Ave, Brooklyn</div>
+      <div class="hazard-desc">High-speed turns from Eastern Pkwy · dooring risk from parked cars · blind spot from buses</div>
+    </div>
+    <div class="hazard-item hazard-high">
+      <div class="hazard-name">Flatbush Ave & Atlantic Ave, Brooklyn</div>
+      <div class="hazard-desc">One of NYC's most dangerous intersections · 7-way crossing · heavy pedestrian + vehicle + bike conflict</div>
+    </div>
+    <div class="hazard-item hazard-high">
+      <div class="hazard-name">Tillary St & Adams St, Brooklyn (Bridge approach)</div>
+      <div class="hazard-desc">Brooklyn Bridge bike path entrance · merging traffic from BQE ramps · high-speed vehicle conflict zone</div>
+    </div>
+    <div class="hazard-item hazard-high">
+      <div class="hazard-name">2nd Ave & 34th St, Manhattan</div>
+      <div class="hazard-desc">Protected lane frequently blocked by delivery vehicles · dooring from rideshare pickups · mid-block pedestrian crossing</div>
+    </div>
+    <div class="hazard-item hazard-high">
+      <div class="hazard-name">Hudson St & 14th St, Manhattan</div>
+      <div class="hazard-desc">Unprotected crossing · heavy truck traffic · multiple cyclist injuries reported 2023-2025</div>
+    </div>
+
+    <div class="hazard-badge med" style="margin-top:10px">🟠 ELEVATED RISK</div>
+    <div class="hazard-item hazard-med">
+      <div class="hazard-name">Prospect Park West — Park Slope dooring zone</div>
+      <div class="hazard-desc">Parked cars adjacent to protected lane · car doors open without checking · ride 3+ feet from parked cars</div>
+    </div>
+    <div class="hazard-item hazard-med">
+      <div class="hazard-name">Ocean Pkwy bike path — Ditmas Ave crossing</div>
+      <div class="hazard-desc">Fast car turns across bike path · poor sight lines · signal often ignored by turning vehicles</div>
+    </div>
+    <div class="hazard-item hazard-med">
+      <div class="hazard-name">Kent Ave, Williamsburg — truck loading zones</div>
+      <div class="hazard-desc">Industrial corridor · trucks reversing across bike lane without warning · ride slowly and make eye contact with drivers</div>
+    </div>
+    <div class="hazard-item hazard-med">
+      <div class="hazard-name">Broadway & Myrtle Ave, Brooklyn</div>
+      <div class="hazard-desc">Complex intersection · mixed bike/pedestrian conflict · J/M/Z train structure reduces visibility</div>
+    </div>
+    <div class="hazard-item hazard-med">
+      <div class="hazard-name">9th Ave protected lane, Chelsea (28th–38th St)</div>
+      <div class="hazard-desc">Frequent double-parking by trucks in protected lane · forces cyclists into moving traffic · peak risk 7-10 AM</div>
+    </div>
+    <div class="hazard-item hazard-med">
+      <div class="hazard-name">Manhattan Bridge bike path — Delancey St exit</div>
+      <div class="hazard-desc">Fast descent onto busy street · poor sight line at bottom · reduce speed significantly before exit ramp</div>
+    </div>
+  </div>
+
+  <!-- Live Accident News Feed -->
+  <div class="bike-section">
+    <div class="bike-section-title">📡 Recent NYC Cyclist Safety Updates</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px;font-family:'JetBrains Mono',monospace">AI-summarized from recent NYC cycling news · refresh for latest</div>
+    <div id="newsLoadBtn">
+      <button onclick="loadBikeNews()" style="width:100%;padding:10px;background:var(--green-glow);border:1px solid var(--green);border-radius:8px;color:var(--green);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;letter-spacing:.5px">⟳ LOAD LATEST CYCLING SAFETY UPDATES</button>
+    </div>
+    <div id="newsLoading" style="display:none" class="news-loading">⟳ Searching for recent NYC cycling news...</div>
+    <div id="newsFeed" style="display:none"></div>
+    <div style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:8px;opacity:.6">Powered by Claude AI · not a substitute for official NYC DOT safety alerts</div>
+  </div>
+
 </div>
 
 <script>
@@ -491,6 +669,84 @@ function switchView(name,btn){
 let toastTimer;
 function showToast(msg){const ex=document.querySelector('.toast');if(ex)ex.remove();const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),300);},2800);}
 function launchConfetti(){const c=['#4CAF6B','#E8A84A','#5BA8D8','#E05050','#FFD700'];for(let i=0;i<25;i++){const p=document.createElement('div');p.className='confetti-piece';p.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${c[Math.floor(Math.random()*c.length)]};transform:rotate(${Math.random()*360}deg);animation-duration:${1.4+Math.random()}s;animation-delay:${Math.random()*.4}s;`;document.body.appendChild(p);setTimeout(()=>p.remove(),2200);}}
+
+// ── BIKE VIEW ─────────────────────────────────────────────
+let bikeMapInst=null,bikeViewInit=false;
+const BIKE_CHECKS=10;
+const HAZARDS=[
+  {lat:40.6841,lng:-73.9772,name:'Atlantic Ave & 4th Ave',risk:'high',desc:'Multi-lane · high truck volume · multiple fatalities · protected lane ends abruptly'},
+  {lat:40.6697,lng:-73.9578,name:'Eastern Pkwy & Washington Ave',risk:'high',desc:'High-speed turns · dooring risk · bus blind spots'},
+  {lat:40.6843,lng:-73.9590,name:'Flatbush & Atlantic Ave',risk:'high',desc:'7-way crossing · heavy pedestrian + vehicle + bike conflict'},
+  {lat:40.6962,lng:-73.9894,name:'Tillary St & Adams St (Bridge)',risk:'high',desc:'Bridge approach · BQE ramp merges · high-speed conflict zone'},
+  {lat:40.7471,lng:-73.9815,name:'2nd Ave & 34th St, Manhattan',risk:'high',desc:'Lane blocked by deliveries · rideshare dooring · pedestrian crossing'},
+  {lat:40.7388,lng:-74.0059,name:'Hudson St & 14th St, Manhattan',risk:'high',desc:'Unprotected crossing · heavy trucks · multiple injuries 2023-2025'},
+  {lat:40.6642,lng:-73.9800,name:'Prospect Park West — Park Slope',risk:'med',desc:'Dooring zone · ride 3+ feet from parked cars'},
+  {lat:40.6280,lng:-73.9614,name:'Ocean Pkwy & Ditmas Ave',risk:'med',desc:'Fast car turns across path · poor sight lines'},
+  {lat:40.7178,lng:-73.9630,name:'Kent Ave, Williamsburg',risk:'med',desc:'Truck loading zone · reversing trucks · ride slowly'},
+  {lat:40.6980,lng:-73.9431,name:'Broadway & Myrtle Ave, Brooklyn',risk:'med',desc:'Complex intersection · train structure reduces visibility'},
+  {lat:40.7484,lng:-74.0011,name:'9th Ave Chelsea (28th-38th)',risk:'med',desc:'Double-parking in protected lane · peak risk 7-10 AM'},
+  {lat:40.7136,lng:-73.9880,name:'Manhattan Bridge — Delancey exit',risk:'med',desc:'Fast descent · poor sight line · slow before exit ramp'},
+];
+
+function initBikeView(){
+  if(bikeViewInit)return;
+  bikeViewInit=true;
+  updateBikeReady();
+  setTimeout(()=>{
+    const mapEl=document.getElementById('bikeMap');
+    if(!mapEl||bikeMapInst)return;
+    bikeMapInst=L.map('bikeMap',{zoomControl:true,scrollWheelZoom:false}).setView([40.710,-73.960],11);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+      attribution:'© OpenStreetMap © CARTO',maxZoom:19
+    }).addTo(bikeMapInst);
+    HAZARDS.forEach(h=>{
+      const color=h.risk==='high'?'#e05050':'#e09050';
+      const icon=L.divIcon({
+        className:'',
+        html:'<div style="width:14px;height:14px;background:'+color+';border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px '+color+'88"></div>',
+        iconSize:[14,14],iconAnchor:[7,7]
+      });
+      L.marker([h.lat,h.lng],{icon}).addTo(bikeMapInst)
+        .bindPopup('<b style="color:#222;font-size:12px">'+h.name+'</b><br><span style="font-size:11px;color:#444">'+h.desc+'</span>');
+    });
+  },300);
+}
+
+function updateBikeReady(){
+  let done=0;
+  for(let i=1;i<=BIKE_CHECKS;i++){const el=document.getElementById('bc'+i);if(el&&el.checked)done++;}
+  const pct=Math.round((done/BIKE_CHECKS)*100);
+  const el=document.getElementById('bikeReadyPct');
+  if(el){
+    el.textContent=pct+'%';
+    el.style.color=pct===100?'#7fff7f':pct>=70?'#b8f0b8':'var(--green)';
+  }
+}
+
+function resetBikeChecks(){
+  for(let i=1;i<=BIKE_CHECKS;i++){const el=document.getElementById('bc'+i);if(el)el.checked=false;}
+  updateBikeReady();
+}
+
+async function loadBikeNews(){
+  document.getElementById('newsLoadBtn').style.display='none';
+  document.getElementById('newsLoading').style.display='block';
+  document.getElementById('newsFeed').style.display='none';
+  try{
+    const resp=await fetch('/api/bike-news');
+    const data=await resp.json();
+    const feed=document.getElementById('newsFeed');
+    if(data.items&&data.items.length){
+      feed.innerHTML=data.items.map(item=>'<div class="news-item"><div class="news-item-title">'+item.title+'</div><div class="news-item-meta">'+(item.meta||'')+'</div></div>').join('');
+    }else{
+      feed.innerHTML='<div class="news-loading">No recent updates found.</div>';
+    }
+    document.getElementById('newsLoading').style.display='none';
+    feed.style.display='block';
+  }catch(e){
+    document.getElementById('newsLoading').textContent='Could not load updates. Try again.';
+  }
+}
 
 init();
 </script>
