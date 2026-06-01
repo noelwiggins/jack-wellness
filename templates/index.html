@@ -456,9 +456,39 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
       <div class="hazard-name">Ocean Pkwy bike path — Ditmas Ave crossing</div>
       <div class="hazard-desc">Fast car turns across bike path · poor sight lines · signal often ignored by turning vehicles</div>
     </div>
+    <div class="hazard-badge high" style="margin-top:10px">🔴 WILLIAMSBURG HIGH RISK</div>
+    <div class="hazard-item hazard-high">
+      <div class="hazard-name">Bedford Ave & N 7th St — bar district night riding</div>
+      <div class="hazard-desc">High pedestrian traffic spilling into bike lane after dark · rideshare double-parking · most dangerous 10 PM–2 AM · drivers pulling U-turns without signaling</div>
+    </div>
+    <div class="hazard-item hazard-high">
+      <div class="hazard-name">Metropolitan Ave & Havemeyer St</div>
+      <div class="hazard-desc">Poorly marked bike lane transition · high-speed turns from Metropolitan Ave · delivery trucks block sight lines · multiple cyclist injuries reported</div>
+    </div>
+    <div class="hazard-item hazard-high">
+      <div class="hazard-name">Wythe Ave & N 12th St — festival/event corridor</div>
+      <div class="hazard-desc">Venue loading docks across bike lane · drunk pedestrians stepping into lane · Uber/Lyft pickups concentrated here · especially dangerous weekend nights</div>
+    </div>
+    <div class="hazard-badge med" style="margin-top:10px">🟠 WILLIAMSBURG ELEVATED RISK</div>
     <div class="hazard-item hazard-med">
-      <div class="hazard-name">Kent Ave, Williamsburg — truck loading zones</div>
-      <div class="hazard-desc">Industrial corridor · trucks reversing across bike lane without warning · ride slowly and make eye contact with drivers</div>
+      <div class="hazard-name">Kent Ave, Williamsburg — full corridor (N 1st to N 15th)</div>
+      <div class="hazard-desc">Industrial corridor · trucks reversing across bike lane without warning · loading dock activity 6 AM–2 PM peak · ride slowly and make eye contact with every driver · lane narrows unpredictably at several points</div>
+    </div>
+    <div class="hazard-item hazard-med">
+      <div class="hazard-name">N 6th St & Berry St — pedestrian blind spot</div>
+      <div class="hazard-desc">Busy crosswalk · pedestrians cross without looking due to phone use · market vendors sometimes block bike lane · slow to walking pace through this block</div>
+    </div>
+    <div class="hazard-item hazard-med">
+      <div class="hazard-name">Driggs Ave & Grand St — angled intersection</div>
+      <div class="hazard-desc">Unusual angle creates blind approach · taxis cut across · bike lane markings fade · cars from Grand St don't yield to cyclists in lane</div>
+    </div>
+    <div class="hazard-item hazard-med">
+      <div class="hazard-name">Bushwick Ave & Flushing Ave — BQE underpass</div>
+      <div class="hazard-desc">Dark underpass with poor lighting · debris accumulates in bike lane · fast-moving traffic from BQE service road · wet pavement stays slippery longer than open streets</div>
+    </div>
+    <div class="hazard-item hazard-med">
+      <div class="hazard-name">Lorimer St & Metropolitan Ave</div>
+      <div class="hazard-desc">High-volume bar and restaurant district · valet parking activity · cars park illegally in bike lane constantly · worst 7–11 PM daily</div>
     </div>
     <div class="hazard-item hazard-med">
       <div class="hazard-name">Broadway & Myrtle Ave, Brooklyn</div>
@@ -729,6 +759,15 @@ const HAZARDS=[
   {lat:40.6980,lng:-73.9431,name:'Broadway & Myrtle Ave, Brooklyn',risk:'med',desc:'Complex intersection · train structure reduces visibility'},
   {lat:40.7484,lng:-74.0011,name:'9th Ave Chelsea (28th-38th)',risk:'med',desc:'Double-parking in protected lane · peak risk 7-10 AM'},
   {lat:40.7136,lng:-73.9880,name:'Manhattan Bridge — Delancey exit',risk:'med',desc:'Fast descent · poor sight line · slow before exit ramp'},
+  // Williamsburg
+  {lat:40.7175,lng:-73.9574,name:'Bedford Ave & N 7th St',risk:'high',desc:'Bar district · rideshare double-parking · pedestrians in lane · most dangerous 10 PM–2 AM'},
+  {lat:40.7140,lng:-73.9510,name:'Metropolitan Ave & Havemeyer St',risk:'high',desc:'Poorly marked lane transition · high-speed turns · delivery truck blind spots'},
+  {lat:40.7216,lng:-73.9578,name:'Wythe Ave & N 12th St',risk:'high',desc:'Venue loading docks · drunk pedestrians · Uber pickups · worst weekend nights'},
+  {lat:40.7178,lng:-73.9630,name:'Kent Ave corridor (N 1st–N 15th)',risk:'med',desc:'Truck loading zones · reversing trucks · lane narrows · peak risk 6 AM–2 PM'},
+  {lat:40.7154,lng:-73.9573,name:'N 6th St & Berry St',risk:'med',desc:'Pedestrian blind spot · phone users cross without looking · market vendors block lane'},
+  {lat:40.7115,lng:-73.9530,name:'Driggs Ave & Grand St',risk:'med',desc:'Angled intersection · taxis cut across · faded bike lane markings'},
+  {lat:40.7023,lng:-73.9440,name:'Bushwick Ave & Flushing Ave',risk:'med',desc:'Dark BQE underpass · debris in lane · fast traffic from BQE service road'},
+  {lat:40.7140,lng:-73.9510,name:'Lorimer St & Metropolitan Ave',risk:'med',desc:'Valet parking activity · cars block bike lane · worst 7–11 PM daily'},
 ];
 
 function initBikeView(){
@@ -738,7 +777,7 @@ function initBikeView(){
   setTimeout(()=>{
     const mapEl=document.getElementById('bikeMap');
     if(!mapEl||bikeMapInst)return;
-    bikeMapInst=L.map('bikeMap',{zoomControl:true,scrollWheelZoom:false}).setView([40.710,-73.960],11);
+    bikeMapInst=L.map('bikeMap',{zoomControl:true,scrollWheelZoom:false}).setView([40.715,-73.965],11);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
       attribution:'© OpenStreetMap © CARTO',maxZoom:19
     }).addTo(bikeMapInst);
