@@ -1,7 +1,7 @@
 import os
 import json
-import psycopg2
-import psycopg2.extras
+import psycopg
+from psycopg.rows import dict_row
 from datetime import datetime, date, timedelta
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
