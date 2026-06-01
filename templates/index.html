@@ -89,6 +89,22 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .sh-tms{background:linear-gradient(90deg,rgba(76,175,107,.1),transparent);border-bottom:1px solid var(--border)}
 .sh-evening{background:linear-gradient(90deg,rgba(91,168,216,.06),transparent);border-bottom:1px solid var(--border)}
 .sh-recovery{background:linear-gradient(90deg,rgba(224,100,50,.08),transparent);border-bottom:1px solid var(--border)}
+.bike-nav-tab{color:#e07070 !important;border:1px solid rgba(224,80,80,.3) !important}
+.bike-nav-tab.active{background:rgba(224,80,80,.15) !important;color:#ff8080 !important;border-color:rgba(224,80,80,.5) !important}
+.bike-urgency{background:linear-gradient(135deg,rgba(224,50,50,.18),rgba(180,30,30,.08));border:1px solid rgba(224,80,80,.4);border-radius:14px;padding:18px 16px;margin-bottom:16px;position:relative;overflow:hidden}
+.bike-urgency::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#e03232,#ff6b35,#e03232);animation:urgencyPulse 2s ease-in-out infinite}
+@keyframes urgencyPulse{0%,100%{opacity:.6}50%{opacity:1}}
+.bike-urgency-head{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:#ff7070;margin-bottom:8px;display:flex;align-items:center;gap:8px;letter-spacing:-.2px}
+.bike-urgency-stat{display:flex;gap:12px;margin:10px 0;flex-wrap:wrap}
+.bike-urgency-stat-item{background:rgba(224,50,50,.15);border:1px solid rgba(224,80,80,.25);border-radius:8px;padding:8px 12px;flex:1;min-width:80px;text-align:center}
+.bike-urgency-stat-num{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:#ff7070;display:block}
+.bike-urgency-stat-lbl{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;text-transform:uppercase}
+.bike-urgency-body{font-size:12px;color:#e0a0a0;line-height:1.6;margin-bottom:10px}
+.bike-urgency-rules{list-style:none;padding:0;margin:0}
+.bike-urgency-rules li{font-size:12px;color:var(--text2);padding:5px 0;border-bottom:1px solid rgba(224,80,80,.1);display:flex;gap:8px;align-items:flex-start;line-height:1.4}
+.bike-urgency-rules li:last-child{border-bottom:none}
+.bike-urgency-rules li::before{content:'⚠';color:#ff7070;flex-shrink:0;font-size:11px;margin-top:1px}
+.bike-ready-bar{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .bike-section{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
 .bike-section-title{font-family:'Playfair Display',serif;font-size:15px;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .bike-check-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(42,61,44,.3)}
@@ -197,7 +213,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
     <button class="nav-tab active" onclick="switchView('today',this)">TODAY</button>
     <button class="nav-tab" onclick="switchView('stats',this)">STATS</button>
     <button class="nav-tab" onclick="switchView('history',this)">LOG</button>
-    <button class="nav-tab" onclick="switchView('bike',this);initBikeView()">🚲</button>
+    <button class="nav-tab bike-nav-tab" onclick="switchView('bike',this);initBikeView()">🚲 RIDE</button>
   </div>
 </nav>
 
@@ -296,6 +312,33 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 </div>
 
 <div class="view" id="view-bike">
+
+  <!-- Urgency Banner -->
+  <div class="bike-urgency">
+    <div class="bike-urgency-head">⚡ NYC Cycling — Know the Risk</div>
+    <div class="bike-urgency-stat">
+      <div class="bike-urgency-stat-item">
+        <span class="bike-urgency-stat-num">~19</span>
+        <span class="bike-urgency-stat-lbl">cyclists killed<br>NYC per year</span>
+      </div>
+      <div class="bike-urgency-stat-item">
+        <span class="bike-urgency-stat-num">3,800+</span>
+        <span class="bike-urgency-stat-lbl">injuries<br>annually</span>
+      </div>
+      <div class="bike-urgency-stat-item">
+        <span class="bike-urgency-stat-num">68%</span>
+        <span class="bike-urgency-stat-lbl">of fatalities<br>no helmet</span>
+      </div>
+    </div>
+    <div class="bike-urgency-body">Cycling in NYC is one of the highest-risk daily activities in the city. Most serious injuries happen to experienced riders who let their guard down — not beginners. The checklist below is not optional.</div>
+    <ul class="bike-urgency-rules">
+      <li>Helmet is non-negotiable — a single fall at 12 mph without a helmet can be fatal. No exceptions, no short trips.</li>
+      <li>Dooring kills — a car door opening in your path gives you less than 0.5 seconds to react. Ride 4 feet from parked cars always.</li>
+      <li>Trucks turn wide and silently — never pass a truck on the right at an intersection. Wait behind it.</li>
+      <li>Your guanfacine lowers blood pressure — sudden hard braking or a near-miss can cause momentary dizziness. Stay calm, ride predictably.</li>
+      <li>Assume drivers cannot see you — make eye contact before proceeding through any intersection.</li>
+    </ul>
+  </div>
 
   <!-- Ready bar -->
   <div class="bike-ready-bar">
