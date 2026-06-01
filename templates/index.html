@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Jack's Wellness Protocol</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#0D1410;--bg2:#111815;--bg3:#161E18;
+  --card:#1A241C;--card2:#1F2B21;
+  --border:#2A3D2C;--border2:#344D36;
+  --green:#4CAF6B;--green2:#3D9558;--green3:#2A6B3E;
+  --green-glow:rgba(76,175,107,0.15);
+  --amber:#E8A84A;--amber2:#C8853A;
+  --amber-glow:rgba(232,168,74,0.12);
+  --red:#E05050;--red2:#B83030;
+  --blue:#5BA8D8;
+  --text:#E8F0E9;--text2:#9BB09D;--text3:#6A8A6C;
+  --xp:#FFD700;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden}
+.nav{position:sticky;top:0;z-index:100;background:rgba(13,20,16,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;height:56px}
+.nav-logo{font-family:'Playfair Display',serif;font-style:italic;font-size:19px;color:var(--green);flex:1;letter-spacing:-.3px}
+.nav-ver{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);margin-right:8px;letter-spacing:.5px}
+.nav-tabs{display:flex;gap:2px}
+.nav-tab{padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;color:var(--text3);transition:all .2s;font-family:'JetBrains Mono',monospace;letter-spacing:.3px;border:none;background:transparent}
+.nav-tab.active{background:var(--green-glow);color:var(--green)}
+.nav-tab:hover:not(.active){color:var(--text2)}
+.view{display:none;padding:14px;max-width:680px;margin:0 auto}
+.view.active{display:block}
+.hero{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50px;right:-50px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(76,175,107,.07),transparent 70%)}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.hero-date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+.hero-streak{display:flex;align-items:center;gap:6px;background:var(--amber-glow);border:1px solid rgba(232,168,74,.2);border-radius:20px;padding:4px 10px}
+.hero-streak-num{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;color:var(--amber)}
+.hero-streak-label{font-size:10px;color:var(--amber2)}
+.hero-level{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.hero-level-num{font-family:'Playfair Display',serif;font-size:34px;color:var(--green);line-height:1}
+.hero-level-label{font-size:12px;color:var(--text2);font-weight:600}
+.hero-level-title{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:.5px}
+.xp-bar-outer{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin:10px 0 5px}
+.xp-bar-inner{height:100%;background:linear-gradient(90deg,var(--green3),var(--green));border-radius:4px;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+.xp-labels{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3)}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.hero-stat{background:var(--bg3);border-radius:10px;padding:9px;text-align:center}
+.hero-stat-val{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:500;color:var(--green);display:block}
+.hero-stat-label{font-size:9px;color:var(--text3);margin-top:2px;display:block;text-transform:uppercase;letter-spacing:.5px}
+.ring-row{display:flex;align-items:center;gap:14px;margin-bottom:4px}
+.ring-wrap{position:relative;width:58px;height:58px;flex-shrink:0}
+.progress-ring{transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--bg3);stroke-width:5}
+.ring-fill{fill:none;stroke:var(--green);stroke-width:5;stroke-linecap:round;stroke-dasharray:150.8;stroke-dashoffset:150.8;transition:stroke-dashoffset 1s cubic-bezier(.34,1.56,.64,1);filter:drop-shadow(0 0 5px var(--green))}
+.ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-pct{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;color:var(--green);line-height:1}
+.ring-sub{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:1px}
+.badges-section{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px}
+.badges-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-family:'JetBrains Mono',monospace}
+.badges-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.badge-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);transition:all .2s}
+.badge-item.earned{background:var(--green-glow);border-color:rgba(76,175,107,.3)}
+.badge-item.earned:hover{transform:translateY(-2px)}
+.badge-emoji{font-size:20px}
+.badge-item:not(.earned) .badge-emoji{filter:grayscale(1) opacity(.25)}
+.badge-name{font-size:8px;color:var(--text3);text-align:center;line-height:1.2;font-family:'JetBrains Mono',monospace}
+.badge-item.earned .badge-name{color:var(--green)}
+.section{margin-bottom:12px;border-radius:14px;overflow:hidden;border:1px solid var(--border)}
+.section-head{display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;user-select:none;transition:background .15s}
+.section-icon{font-size:15px;flex-shrink:0}
+.section-title{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text2);flex:1}
+.section-badge{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 8px;border-radius:10px;font-weight:500}
+.badge-done{background:var(--green-glow);color:var(--green)}
+.badge-partial{background:var(--amber-glow);color:var(--amber)}
+.badge-empty{background:rgba(255,255,255,.05);color:var(--text3)}
+.section-chevron{font-size:11px;color:var(--text3);transition:transform .25s;margin-left:4px}
+.section.collapsed .section-chevron{transform:rotate(-90deg)}
+.section.collapsed .section-body{display:none}
+.sh-sleep{background:linear-gradient(90deg,rgba(91,168,216,.08),transparent);border-bottom:1px solid var(--border)}
+.sh-morning{background:linear-gradient(90deg,rgba(232,168,74,.08),transparent);border-bottom:1px solid var(--border)}
+.sh-supplements{background:linear-gradient(90deg,rgba(76,175,107,.08),transparent);border-bottom:1px solid var(--border)}
+.sh-meals{background:linear-gradient(90deg,rgba(232,168,74,.06),transparent);border-bottom:1px solid var(--border)}
+.sh-hydration{background:linear-gradient(90deg,rgba(91,168,216,.08),transparent);border-bottom:1px solid var(--border)}
+.sh-exercise{background:linear-gradient(90deg,rgba(224,80,80,.08),transparent);border-bottom:1px solid var(--border)}
+.sh-tms{background:linear-gradient(90deg,rgba(76,175,107,.1),transparent);border-bottom:1px solid var(--border)}
+.sh-evening{background:linear-gradient(90deg,rgba(91,168,216,.06),transparent);border-bottom:1px solid var(--border)}
+.sh-recovery{background:linear-gradient(90deg,rgba(224,100,50,.08),transparent);border-bottom:1px solid var(--border)}
+.sh-mood{background:linear-gradient(90deg,rgba(255,215,0,.05),transparent);border-bottom:1px solid var(--border)}
+.check-item{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;cursor:pointer;transition:background .15s;border-bottom:1px solid rgba(42,61,44,.5);background:var(--card);position:relative}
+.check-item:last-child{border-bottom:none}
+.check-item:hover{background:var(--card2)}
+.check-item.done{background:rgba(76,175,107,.04)}
+.check-item.done .check-label{text-decoration:line-through;color:var(--text3)}
+.check-item.divider-item{background:rgba(255,255,255,.02);cursor:default;padding:7px 14px}
+.check-item.divider-item:hover{background:rgba(255,255,255,.02)}
+.divider-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--amber);font-weight:500}
+.cb{width:21px;height:21px;border:2px solid var(--border2);border-radius:6px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .2s;background:var(--bg3)}
+.check-item.done .cb{background:var(--green);border-color:var(--green);box-shadow:0 0 10px var(--green-glow)}
+.cb-check{font-size:12px;color:white;opacity:0;transform:scale(.5);transition:all .2s cubic-bezier(.34,1.56,.64,1)}
+.check-item.done .cb-check{opacity:1;transform:scale(1)}
+@keyframes xpPop{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-28px) scale(1.3)}}
+.xp-pop{position:absolute;right:10px;top:6px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;color:var(--xp);pointer-events:none;animation:xpPop .7s forwards}
+.check-content{flex:1;min-width:0}
+.check-label{font-size:13px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:2px;transition:all .2s}
+.check-note{font-size:10.5px;color:var(--text3);line-height:1.5;font-family:'JetBrains Mono',monospace}
+.check-tag{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.8px;text-transform:uppercase;padding:2px 6px;border-radius:4px;flex-shrink:0;margin-top:2px;font-weight:500}
+.tag-crit{background:rgba(224,80,80,.15);color:var(--red)}
+.tag-key{background:rgba(232,168,74,.15);color:var(--amber)}
+.tag-daily{background:rgba(76,175,107,.15);color:var(--green)}
+.tag-avoid{background:rgba(224,80,80,.12);color:var(--red2)}
+.tag-rx{background:rgba(91,168,216,.15);color:var(--blue)}
+.tag-phase2{background:rgba(255,255,255,.07);color:var(--text3)}
+.water-row{background:var(--card);border-bottom:1px solid rgba(42,61,44,.5);padding:12px 14px}
+.water-label{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;margin-bottom:8px;text-transform:uppercase}
+.water-cups{display:flex;gap:5px;flex-wrap:wrap}
+.wcup{width:30px;height:36px;border:2px solid #2A4060;border-radius:0 0 5px 5px;border-top-width:1px;cursor:pointer;position:relative;overflow:hidden;background:var(--bg3);transition:all .2s}
+.wcup::before{content:'';position:absolute;bottom:0;left:0;right:0;height:0%;background:linear-gradient(180deg,#5BA8D8,#3A78A8);transition:height .3s}
+.wcup.filled::before{height:100%}
+.wcup:hover{border-color:#5BA8D8;transform:translateY(-2px)}
+.wcup.filled{border-color:#5BA8D8;box-shadow:0 0 7px rgba(91,168,216,.3)}
+.mood-row{background:var(--card);border-bottom:1px solid rgba(42,61,44,.5);padding:11px 14px;display:flex;align-items:center;gap:10px}
+.mood-row:last-child{border-bottom:none}
+.mood-label{font-size:11px;font-weight:600;color:var(--text2);width:82px;flex-shrink:0}
+.mood-btns{display:flex;gap:4px}
+.mbtn{width:30px;height:30px;border-radius:6px;border:2px solid var(--border);background:var(--bg3);color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.mbtn:hover{border-color:var(--green);color:var(--green)}
+.mbtn.sel{border-color:var(--green);background:var(--green-glow);color:var(--green);font-weight:700}
+.mood-hint{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:3px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+.stat-card-val{font-family:'Playfair Display',serif;font-size:30px;color:var(--green);line-height:1;margin-bottom:3px}
+.stat-card-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-family:'JetBrains Mono',monospace}
+.stat-card-sub{font-size:11px;color:var(--text2);margin-top:5px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.chart-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:3px}
+.chart-subtitle{font-size:10px;color:var(--text3);margin-bottom:12px}
+.chart-wrap{position:relative;height:155px}
+.period-btns{display:flex;gap:4px;margin-bottom:10px}
+.period-btn{padding:4px 10px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text3);transition:all .2s;letter-spacing:.5px}
+.period-btn.active{background:var(--green-glow);border-color:rgba(76,175,107,.3);color:var(--green)}
+.history-table{width:100%;border-collapse:collapse;font-size:11px}
+.history-table th{text-align:left;padding:8px 10px;background:var(--bg3);color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.8px;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.history-table td{padding:9px 10px;border-bottom:1px solid rgba(42,61,44,.4);color:var(--text2);font-family:'JetBrains Mono',monospace}
+.history-table tr:last-child td{border-bottom:none}
+.pct-bar{display:flex;align-items:center;gap:6px}
+.pct-mini{height:4px;border-radius:2px;background:var(--bg3);flex:1;overflow:hidden;min-width:40px}
+.pct-mini-fill{height:100%;border-radius:2px}
+@keyframes toastIn{from{transform:translateX(-50%) translateY(70px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes toastOut{from{transform:translateX(-50%) translateY(0);opacity:1}to{transform:translateX(-50%) translateY(70px);opacity:0}}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border2);border-radius:12px;padding:11px 18px;font-size:13px;font-weight:600;color:var(--text);z-index:1000;display:flex;align-items:center;gap:7px;box-shadow:0 8px 28px rgba(0,0,0,.4);animation:toastIn .3s ease forwards;white-space:nowrap;max-width:90vw}
+.toast.out{animation:toastOut .3s ease forwards}
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+.confetti-piece{position:fixed;width:7px;height:7px;border-radius:2px;pointer-events:none;z-index:999;animation:confettiFall linear forwards}
+.loading{text-align:center;padding:40px;color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:12px}
+.empty-state{text-align:center;padding:36px 20px;color:var(--text3)}
+.empty-state-icon{font-size:36px;margin-bottom:10px}
+.empty-state-text{font-size:12px;line-height:1.6;font-family:'JetBrains Mono',monospace}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-logo">Jack's Protocol</div>
+  <div class="nav-ver" id="versionLabel">v—</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchView('today',this)">TODAY</button>
+    <button class="nav-tab" onclick="switchView('stats',this)">STATS</button>
+    <button class="nav-tab" onclick="switchView('history',this)">LOG</button>
+  </div>
+</nav>
+
+<div class="view active" id="view-today">
+  <div class="loading" id="todayLoading">⟳ Loading protocol...</div>
+  <div id="todayContent" style="display:none">
+    <div class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="hero-date" id="heroDate">—</div>
+          <div class="hero-level" style="margin-top:7px">
+            <div class="hero-level-num" id="heroLevel">1</div>
+            <div><div class="hero-level-label">LEVEL</div><div class="hero-level-title" id="heroLevelTitle">BEGINNING</div></div>
+          </div>
+        </div>
+        <div class="hero-streak">
+          <div>🔥</div>
+          <div><div class="hero-streak-num" id="heroStreak">0</div><div class="hero-streak-label">DAY STREAK</div></div>
+        </div>
+      </div>
+      <div class="ring-row">
+        <div class="ring-wrap">
+          <svg class="progress-ring" width="58" height="58" viewBox="0 0 58 58">
+            <circle class="ring-bg" cx="29" cy="29" r="24"/>
+            <circle class="ring-fill" id="ringFill" cx="29" cy="29" r="24"/>
+          </svg>
+          <div class="ring-text">
+            <div class="ring-pct" id="ringPct">0%</div>
+            <div class="ring-sub">done</div>
+          </div>
+        </div>
+        <div style="flex:1">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+            <span style="font-size:11px;color:var(--text2);font-weight:600">XP Progress</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--xp)" id="xpDisplay">0 XP</span>
+          </div>
+          <div class="xp-bar-outer"><div class="xp-bar-inner" id="xpBar" style="width:0%"></div></div>
+          <div class="xp-labels"><span id="xpCurrent">0</span><span id="xpNext">100 to next level</span></div>
+        </div>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><span class="hero-stat-val" id="statToday">0%</span><span class="hero-stat-label">Today</span></div>
+        <div class="hero-stat"><span class="hero-stat-val" id="statWeek">—</span><span class="hero-stat-label">7-Day Avg</span></div>
+        <div class="hero-stat"><span class="hero-stat-val" id="statBest">—</span><span class="hero-stat-label">Best Day</span></div>
+      </div>
+    </div>
+    <div class="badges-section">
+      <div class="badges-title">Achievements</div>
+      <div class="badges-grid" id="badgesGrid"></div>
+    </div>
+    <div id="checklistContainer"></div>
+  </div>
+</div>
+
+<div class="view" id="view-stats">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-card-val" id="s-streak">0</div><div class="stat-card-label">Current Streak</div><div class="stat-card-sub" id="s-streak-best">Best: 0 days</div></div>
+    <div class="stat-card"><div class="stat-card-val" id="s-days">0</div><div class="stat-card-label">Days Tracked</div><div class="stat-card-sub" id="s-xp">0 total XP</div></div>
+    <div class="stat-card"><div class="stat-card-val" id="s-avg">—</div><div class="stat-card-label">Avg Completion</div><div class="stat-card-sub" id="s-avgtrend">All time</div></div>
+    <div class="stat-card"><div class="stat-card-val" id="s-level">1</div><div class="stat-card-label">Current Level</div><div class="stat-card-sub" id="s-leveltitle">Beginning</div></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Daily Completion %</div>
+    <div class="chart-subtitle">Percentage of protocol items completed each day</div>
+    <div class="period-btns">
+      <button class="period-btn active" onclick="setPeriod(7,this)">7D</button>
+      <button class="period-btn" onclick="setPeriod(30,this)">30D</button>
+      <button class="period-btn" onclick="setPeriod(90,this)">90D</button>
+      <button class="period-btn" onclick="setPeriod(365,this)">1Y</button>
+    </div>
+    <div class="chart-wrap"><canvas id="completionChart"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Mood & Energy Trends</div>
+    <div class="chart-subtitle">Daily check-in scores (1–5 scale) — last 30 days</div>
+    <div class="chart-wrap"><canvas id="moodChart"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Category Breakdown</div>
+    <div class="chart-subtitle">Average completion % by section — all time</div>
+    <div class="chart-wrap" style="height:185px"><canvas id="categoryChart"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Day of Week Performance</div>
+    <div class="chart-subtitle">Average completion % by weekday</div>
+    <div class="chart-wrap" style="height:115px"><canvas id="weekdayChart"></canvas></div>
+  </div>
+</div>
+
+<div class="view" id="view-history">
+  <div class="chart-card">
+    <div class="chart-title">Daily Log</div>
+    <div class="chart-subtitle">All recorded days — most recent first</div>
+    <div id="historyTableWrap"><div class="loading">Loading...</div></div>
+  </div>
+</div>
+
+<script>
+let PROTOCOL=null,todayData={checks:{},water:0,mood:{}},statsData=null,historyData=[];
+let saveTimer=null,currentPeriod=7,chartInsts={};
+const EARNED_KEY='jwp_earned_v2';
+const BADGES=[
+  {id:'b_first',emoji:'🌱',name:'First Day',check:s=>s.totalDays>=1},
+  {id:'b_3',emoji:'🔥',name:'3 Day Fire',check:s=>s.currentStreak>=3},
+  {id:'b_7',emoji:'⚡',name:'Week Warrior',check:s=>s.currentStreak>=7},
+  {id:'b_30',emoji:'🏆',name:'Month Master',check:s=>s.currentStreak>=30},
+  {id:'b_perfect',emoji:'💯',name:'Perfect Day',check:s=>s.perfectDays>=1},
+  {id:'b_100',emoji:'🎖',name:'100 Days',check:s=>s.totalDays>=100},
+  {id:'b_sleep',emoji:'😴',name:'Sleep Guard',check:s=>s.currentStreak>=7},
+  {id:'b_mover',emoji:'🚴',name:'Mover',check:s=>s.totalDays>=5},
+  {id:'b_lv5',emoji:'⭐',name:'Level 5',check:s=>s.level>=5},
+  {id:'b_lv10',emoji:'🌟',name:'Level 10',check:s=>s.level>=10},
+];
+
+async function api(path,method='GET',body=null){
+  const opts={method,headers:{'Content-Type':'application/json'}};
+  if(body)opts.body=JSON.stringify(body);
+  const r=await fetch(path,opts);
+  if(!r.ok)throw new Error('API '+r.status);
+  return r.json();
+}
+
+async function init(){
+  try{
+    const[protocol,today,stats]=await Promise.all([api('/api/protocol'),api('/api/today'),api('/api/stats')]);
+    PROTOCOL=protocol; todayData=today; statsData=stats;
+    document.getElementById('versionLabel').textContent='v'+protocol.version;
+    document.getElementById('todayLoading').style.display='none';
+    document.getElementById('todayContent').style.display='block';
+    buildChecklist(); updateHero(); renderBadges();
+  }catch(e){
+    document.getElementById('todayLoading').textContent='⚠ Connection error — check network';
+    console.error(e);
+  }
+}
+
+function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(doSave,1200);}
+async function doSave(){
+  try{await api('/api/today','POST',todayData);statsData=await api('/api/stats');updateHero();}
+  catch(e){console.error('Save error:',e);}
+}
+
+function buildChecklist(){
+  const container=document.getElementById('checklistContainer');
+  container.innerHTML='';
+  PROTOCOL.sections.forEach(sec=>{
+    const items=sec.items.filter(i=>i.id);
+    const done=items.filter(i=>todayData.checks[i.id]).length;
+    const bc=done===items.length?'badge-done':done>0?'badge-partial':'badge-empty';
+    const secEl=document.createElement('div');
+    secEl.className='section'; secEl.id='sec_'+sec.id;
+    secEl.innerHTML=`<div class="section-head sh-${sec.color}" onclick="toggleSection('${sec.id}')"><span class="section-icon">${sec.icon}</span><span class="section-title">${sec.title}</span><span class="section-badge ${bc}" id="secbadge_${sec.id}">${done}/${items.length}</span><span class="section-chevron">▾</span></div><div class="section-body" id="secbody_${sec.id}"></div>`;
+    container.appendChild(secEl);
+    const body=document.getElementById('secbody_'+sec.id);
+    sec.items.forEach(item=>{
+      if(item.dividerBefore){const d=document.createElement('div');d.className='check-item divider-item';d.innerHTML=`<span class="divider-label">${item.dividerBefore}</span>`;body.appendChild(d);}
+      if(!item.id)return;
+      if(item.water){body.appendChild(buildCheckRow(item,sec));const wr=document.createElement('div');wr.className='water-row';wr.innerHTML='<div class="water-label">Tap cups to log water</div><div class="water-cups" id="waterCups"></div>';body.appendChild(wr);buildWaterCups();return;}
+      body.appendChild(buildCheckRow(item,sec));
+    });
+  });
+  const moodSec=document.createElement('div');moodSec.className='section';moodSec.id='sec_mood';
+  moodSec.innerHTML=`<div class="section-head sh-mood" onclick="toggleSection('mood')"><span class="section-icon">📊</span><span class="section-title">Daily Check-In</span><span class="section-badge badge-empty" id="secbadge_mood">Track</span><span class="section-chevron">▾</span></div><div class="section-body" id="secbody_mood"></div>`;
+  container.appendChild(moodSec);
+  const mb=document.getElementById('secbody_mood');
+  [{key:'mood',label:'Mood',hint:'1=rough·5=great'},{key:'anxiety',label:'Anxiety',hint:'1=calm·5=high'},{key:'energy',label:'Energy',hint:'1=low·5=high'},{key:'sleep_quality',label:'Sleep',hint:'1=poor·5=great'}].forEach(def=>{
+    const row=document.createElement('div');row.className='mood-row';const cur=(todayData.mood||{})[def.key]||0;
+    row.innerHTML=`<div class="mood-label">${def.label}</div><div class="mood-btns">${[1,2,3,4,5].map(n=>`<button class="mbtn ${cur===n?'sel':''}" onclick="setMood('${def.key}',${n},this)">${n}</button>`).join('')}</div><div class="mood-hint">${def.hint}</div>`;
+    mb.appendChild(row);
+  });
+}
+
+function buildCheckRow(item,sec){
+  const row=document.createElement('div');row.className='check-item'+(todayData.checks[item.id]?' done':'');row.id='item_'+item.id;
+  row.innerHTML=`<div class="cb"><span class="cb-check">✓</span></div><div class="check-content"><div class="check-label">${item.label}</div>${item.note?`<div class="check-note">${item.note}</div>`:''}</div>${item.tag?`<div class="check-tag tag-${item.tag}">${item.tagLabel}</div>`:''}`;
+  row.onclick=()=>toggleCheck(item.id,sec.id,sec.xpEach,row);return row;
+}
+
+function buildWaterCups(){
+  const c=document.getElementById('waterCups');if(!c)return;c.innerHTML='';
+  for(let i=0;i<10;i++){const cup=document.createElement('div');cup.className='wcup'+(i<(todayData.water||0)?' filled':'');
+    cup.onclick=e=>{e.stopPropagation();todayData.water=i<todayData.water?i:i+1;buildWaterCups();scheduleSave();};c.appendChild(cup);}
+}
+
+function toggleSection(id){document.getElementById('sec_'+id).classList.toggle('collapsed');}
+
+function toggleCheck(itemId,secId,xpEach,rowEl){
+  const was=todayData.checks[itemId]; todayData.checks[itemId]=!was;
+  rowEl.classList.toggle('done');
+  if(!was){
+    const pop=document.createElement('div');pop.className='xp-pop';pop.textContent='+'+xpEach+' XP';rowEl.appendChild(pop);setTimeout(()=>pop.remove(),750);
+    const sec=PROTOCOL.sections.find(s=>s.id===secId);
+    if(sec&&sec.items.filter(i=>i.id).every(i=>todayData.checks[i.id])){showToast('🎉 '+sec.icon+' '+sec.title+' complete!');launchConfetti();}
+  }
+  updateSectionBadge(secId); updateHeroLocal(); scheduleSave();
+}
+
+function setMood(key,val,btn){if(!todayData.mood)todayData.mood={};todayData.mood[key]=val;btn.closest('.mood-row').querySelectorAll('.mbtn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');scheduleSave();}
+
+function updateSectionBadge(secId){
+  const sec=PROTOCOL.sections.find(s=>s.id===secId);if(!sec)return;
+  const items=sec.items.filter(i=>i.id);const done=items.filter(i=>todayData.checks[i.id]).length;
+  const badge=document.getElementById('secbadge_'+secId);if(!badge)return;
+  badge.textContent=done+'/'+items.length;badge.className='section-badge '+(done===items.length?'badge-done':done>0?'badge-partial':'badge-empty');
+}
+
+function updateHeroLocal(){
+  if(!PROTOCOL)return;
+  const allItems=PROTOCOL.sections.flatMap(s=>s.items.filter(i=>i.id));
+  const done=allItems.filter(i=>todayData.checks[i.id]).length;
+  const pct=Math.round((done/allItems.length)*100);
+  const C=2*Math.PI*24;
+  document.getElementById('ringFill').style.strokeDashoffset=C-(C*pct/100);
+  document.getElementById('ringPct').textContent=pct+'%';
+  document.getElementById('statToday').textContent=pct+'%';
+}
+
+function updateHero(){
+  if(!PROTOCOL||!statsData)return; updateHeroLocal();
+  document.getElementById('heroDate').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}).toUpperCase();
+  const xp=statsData.totalXP||0,lvl=getLevelInfo(xp);
+  document.getElementById('heroLevel').textContent=lvl.level;
+  document.getElementById('heroLevelTitle').textContent=lvl.title.toUpperCase();
+  document.getElementById('xpDisplay').textContent=xp+' XP';
+  document.getElementById('xpBar').style.width=lvl.pct+'%';
+  document.getElementById('xpCurrent').textContent=lvl.xpInLevel+' XP';
+  document.getElementById('xpNext').textContent=lvl.next?(lvl.xpNeeded-lvl.xpInLevel)+' to Lv.'+lvl.next.level:'MAX';
+  document.getElementById('heroStreak').textContent=statsData.currentStreak||0;
+  document.getElementById('statWeek').textContent=(statsData.avgCompletion||0)+'%';
+  document.getElementById('s-streak').textContent=statsData.currentStreak||0;
+  document.getElementById('s-streak-best').textContent='Best: '+(statsData.bestStreak||0)+' days';
+  document.getElementById('s-days').textContent=statsData.totalDays||0;
+  document.getElementById('s-xp').textContent=(statsData.totalXP||0)+' total XP';
+  document.getElementById('s-avg').textContent=(statsData.avgCompletion||0)+'%';
+  document.getElementById('s-avgtrend').textContent='Across '+(statsData.totalDays||0)+' days';
+  document.getElementById('s-level').textContent=lvl.level;
+  document.getElementById('s-leveltitle').textContent=lvl.title;
+  renderBadges();
+}
+
+function getLevelInfo(xp){
+  const levels=PROTOCOL?PROTOCOL.levels:[{level:1,title:'Beginning',xpRequired:0}];
+  let cur=levels[0],nxt=levels[1];
+  for(let i=levels.length-1;i>=0;i--){if(xp>=levels[i].xpRequired){cur=levels[i];nxt=levels[i+1]||null;break;}}
+  const xpIn=xp-cur.xpRequired,xpNeed=nxt?nxt.xpRequired-cur.xpRequired:999;
+  return{level:cur.level,title:cur.title,xp,xpInLevel:xpIn,xpNeeded:xpNeed,pct:Math.min(100,Math.round(xpIn/xpNeed*100)),next:nxt};
+}
+
+function renderBadges(){
+  if(!statsData||!PROTOCOL)return;
+  const lvl=getLevelInfo(statsData.totalXP||0);
+  const cs={...statsData,level:lvl.level};
+  const earned=JSON.parse(localStorage.getItem(EARNED_KEY)||'[]');
+  const newE=[];
+  BADGES.forEach(b=>{if(b.check(cs)&&!earned.includes(b.id)){earned.push(b.id);newE.push(b);}});
+  if(newE.length){localStorage.setItem(EARNED_KEY,JSON.stringify(earned));newE.forEach(b=>setTimeout(()=>showToast('🏅 Badge: '+b.name+'!'),500));}
+  const grid=document.getElementById('badgesGrid');if(!grid)return;grid.innerHTML='';
+  BADGES.forEach(b=>{const el=document.createElement('div');el.className='badge-item'+(earned.includes(b.id)?' earned':'');el.title=b.name;el.innerHTML=`<div class="badge-emoji">${b.emoji}</div><div class="badge-name">${b.name}</div>`;grid.appendChild(el);});
+}
+
+const CO={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1A241C',borderColor:'#2A3D2C',borderWidth:1,titleColor:'#9BB09D',bodyColor:'#E8F0E9',titleFont:{family:'JetBrains Mono',size:10},bodyFont:{family:'JetBrains Mono',size:11}}},scales:{x:{grid:{color:'rgba(42,61,44,.4)'},ticks:{color:'#6A8A6C',font:{family:'JetBrains Mono',size:8}}},y:{grid:{color:'rgba(42,61,44,.4)'},ticks:{color:'#6A8A6C',font:{family:'JetBrains Mono',size:8}}}}};
+
+function setPeriod(days,btn){currentPeriod=days;document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCompletionChart();}
+
+async function renderStats(){
+  if(!statsData||!PROTOCOL)return; updateHero();
+  await renderCompletionChart();
+  try{
+    const mR=await api('/api/chart/mood?days=30');
+    if(chartInsts.mood)chartInsts.mood.destroy();
+    const mL=mR.map(d=>{const dt=new Date(d.date+'T12:00:00');return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});});
+    const cols=['#4CAF6B','#E05050','#E8A84A','#5BA8D8'],keys=['mood','anxiety','energy','sleep_quality'],kl=['Mood','Anxiety','Energy','Sleep'];
+    chartInsts.mood=new Chart(document.getElementById('moodChart').getContext('2d'),{type:'line',data:{labels:mL,datasets:keys.map((k,i)=>({label:kl[i],data:mR.map(d=>d[k]||null),borderColor:cols[i],borderWidth:2,pointRadius:2,tension:.4,spanGaps:true}))},options:{...CO,plugins:{...CO.plugins,legend:{display:true,labels:{color:'#9BB09D',font:{family:'JetBrains Mono',size:9},boxWidth:10,padding:8}}},scales:{...CO.scales,y:{...CO.scales.y,min:0,max:5,ticks:{...CO.scales.y.ticks,stepSize:1}}}}});
+  }catch(e){console.error(e);}
+  if(chartInsts.cat)chartInsts.cat.destroy();
+  const cD=statsData.categoryAverages||{},cL=PROTOCOL.sections.map(s=>s.icon+' '+s.title.split(' ')[0]),cV=PROTOCOL.sections.map(s=>cD[s.id]||0);
+  chartInsts.cat=new Chart(document.getElementById('categoryChart').getContext('2d'),{type:'bar',data:{labels:cL,datasets:[{data:cV,backgroundColor:cV.map(v=>v>=80?'rgba(76,175,107,.6)':v>=50?'rgba(232,168,74,.6)':'rgba(224,80,80,.5)'),borderColor:cV.map(v=>v>=80?'#4CAF6B':v>=50?'#E8A84A':'#E05050'),borderWidth:1,borderRadius:4}]},options:{...CO,scales:{...CO.scales,x:{...CO.scales.x,ticks:{...CO.scales.x.ticks,font:{family:'JetBrains Mono',size:7}}},y:{...CO.scales.y,min:0,max:100,ticks:{...CO.scales.y.ticks,callback:v=>v+'%'}}}}});
+  if(chartInsts.wd)chartInsts.wd.destroy();
+  const wd=statsData.weekdayAverages||[0,0,0,0,0,0,0];
+  chartInsts.wd=new Chart(document.getElementById('weekdayChart').getContext('2d'),{type:'bar',data:{labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],datasets:[{data:wd,backgroundColor:'rgba(76,175,107,.4)',borderColor:'#4CAF6B',borderWidth:1,borderRadius:4}]},options:{...CO,scales:{...CO.scales,y:{...CO.scales.y,min:0,max:100,ticks:{...CO.scales.y.ticks,callback:v=>v+'%'}}}}});
+}
+
+async function renderCompletionChart(){
+  try{
+    const raw=await api('/api/chart/completion?days='+currentPeriod);
+    if(chartInsts.completion)chartInsts.completion.destroy();if(!raw.length)return;
+    const labels=raw.map(d=>{const dt=new Date(d.date+'T12:00:00');return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});});
+    const ctx=document.getElementById('completionChart').getContext('2d');
+    const grad=ctx.createLinearGradient(0,0,0,155);grad.addColorStop(0,'rgba(76,175,107,.3)');grad.addColorStop(1,'rgba(76,175,107,0)');
+    chartInsts.completion=new Chart(ctx,{type:'line',data:{labels,datasets:[{data:raw.map(d=>d.pct),borderColor:'#4CAF6B',backgroundColor:grad,borderWidth:2,pointBackgroundColor:'#4CAF6B',pointRadius:raw.length>30?0:3,fill:true,tension:.4}]},options:{...CO,scales:{...CO.scales,y:{...CO.scales.y,min:0,max:100,ticks:{...CO.scales.y.ticks,callback:v=>v+'%'}}}}});
+  }catch(e){console.error(e);}
+}
+
+async function renderHistory(){
+  try{
+    historyData=await api('/api/history?limit=365');
+    const wrap=document.getElementById('historyTableWrap');
+    if(!historyData.length){wrap.innerHTML='<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No data yet.</div></div>';return;}
+    const today=new Date().toISOString().slice(0,10);
+    let html='<table class="history-table"><thead><tr><th>Date</th><th>Completion</th><th>Mood</th><th>XP</th></tr></thead><tbody>';
+    historyData.forEach(d=>{
+      const pct=d.completion_pct,mood=(d.mood||{}).mood||0,dt=new Date(d.date+'T12:00:00'),ds=dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}),col=pct>=80?'#4CAF6B':pct>=50?'#E8A84A':'#E05050';
+      html+=`<tr><td style="color:${d.date===today?'var(--green)':'var(--text2)'}">${ds}${d.date===today?' ●':''}</td><td><div class="pct-bar"><div class="pct-mini"><div class="pct-mini-fill" style="width:${pct}%;background:${col}"></div></div><span style="color:${col}">${pct}%</span></div></td><td style="color:var(--amber)">${mood?'★'.repeat(mood):'—'}</td><td style="color:var(--xp)">+${d.xp_earned}</td></tr>`;
+    });
+    html+='</tbody></table>';wrap.innerHTML=html;
+    if(historyData.length)document.getElementById('statBest').textContent=Math.max(...historyData.map(d=>d.completion_pct))+'%';
+  }catch(e){document.getElementById('historyTableWrap').innerHTML='<div class="loading">Error loading</div>';}
+}
+
+function switchView(name,btn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(name==='stats')renderStats();
+  if(name==='history')renderHistory();
+}
+
+let toastTimer;
+function showToast(msg){const ex=document.querySelector('.toast');if(ex)ex.remove();const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),300);},2800);}
+function launchConfetti(){const c=['#4CAF6B','#E8A84A','#5BA8D8','#E05050','#FFD700'];for(let i=0;i<25;i++){const p=document.createElement('div');p.className='confetti-piece';p.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${c[Math.floor(Math.random()*c.length)]};transform:rotate(${Math.random()*360}deg);animation-duration:${1.4+Math.random()}s;animation-delay:${Math.random()*.4}s;`;document.body.appendChild(p);setTimeout(()=>p.remove(),2200);}}
+
+init();
+</script>
+</body>
+</html>
