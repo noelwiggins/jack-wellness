@@ -1,11 +1,8 @@
 [phases.setup]
-nixPkgs = ["python311"]
+nixPkgs = ["python311", "python311Packages.pip"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
-
-[phases.build]
-cmds = ["python -c 'import app; app.init_db()'"]
+cmds = ["python3.11 -m pip install -r requirements.txt"]
 
 [start]
 cmd = "gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 60"
