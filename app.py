@@ -204,6 +204,12 @@ LEVELS = [
 
 # ── API ROUTES ────────────────────────────────────────────
 
+# Initialize DB on startup
+try:
+    init_db()
+except Exception as e:
+    print("DB init warning:", e)
+
 @app.route('/')
 def index():
     return render_template('index.html')
