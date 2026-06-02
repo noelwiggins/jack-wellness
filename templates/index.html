@@ -129,6 +129,38 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .bike-ready-pct{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:var(--green)}
 .bike-ready-label{font-size:12px;color:var(--text3)}
 .bike-reset-btn{font-size:10px;font-family:'JetBrains Mono',monospace;padding:6px 12px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text3);cursor:pointer}
+.hypo-nav-tab{color:#b89aff !important;border:1px solid rgba(160,120,255,.3) !important}
+.hypo-nav-tab.active{background:rgba(160,120,255,.12) !important;color:#c8b0ff !important;border-color:rgba(160,120,255,.5) !important}
+.labs-nav-tab{color:#60c8e0 !important;border:1px solid rgba(80,180,220,.3) !important}
+.labs-nav-tab.active{background:rgba(80,180,220,.12) !important;color:#80d8f0 !important;border-color:rgba(80,180,220,.5) !important}
+.hypo-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+.hypo-card-head{font-family:'Playfair Display',serif;font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.hypo-confidence{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-family:'JetBrains Mono',monospace;padding:3px 8px;border-radius:10px;margin-left:auto}
+.conf-high{background:rgba(80,200,120,.15);color:#50c878;border:1px solid rgba(80,200,120,.3)}
+.conf-med{background:rgba(230,180,60,.15);color:#e6b43c;border:1px solid rgba(230,180,60,.3)}
+.conf-low{background:rgba(160,120,255,.15);color:#a078ff;border:1px solid rgba(160,120,255,.3)}
+.hypo-body{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:10px}
+.hypo-evidence{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;background:var(--bg3);border-radius:6px;padding:8px 10px;margin-bottom:10px;line-height:1.5}
+.hypo-options{margin-top:10px}
+.hypo-option{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:8px;margin-bottom:6px;border:1px solid var(--border)}
+.hypo-option-active{background:rgba(80,200,120,.06);border-color:rgba(80,200,120,.25)}
+.hypo-option-explore{background:rgba(160,120,255,.06);border-color:rgba(160,120,255,.2)}
+.hypo-option-caution{background:rgba(224,80,80,.06);border-color:rgba(224,80,80,.2)}
+.hypo-option-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.dot-active{background:#50c878}
+.dot-explore{background:#a078ff}
+.dot-caution{background:#e05050}
+.hypo-option-text{font-size:12px;color:var(--text2);line-height:1.4}
+.hypo-option-text strong{color:var(--text1);display:block;margin-bottom:2px;font-size:12px}
+.hypo-option-text span{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.hypo-question{font-size:11px;color:#a078ff;font-family:'JetBrains Mono',monospace;padding:8px 10px;background:rgba(160,120,255,.08);border-radius:6px;border-left:2px solid #a078ff;margin-top:8px;line-height:1.5;cursor:pointer}
+.hypo-divider{font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:8px 0 4px;border-top:1px solid var(--border);margin-top:10px}
+.labs-chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+.labs-chart-title{font-family:'Playfair Display',serif;font-size:14px;color:var(--text1);margin-bottom:2px}
+.labs-chart-sub{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-bottom:12px}
+.labs-ref-line{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:6px;display:flex;gap:12px;flex-wrap:wrap}
+.labs-ref-line span{display:inline-flex;align-items:center;gap:4px}
+.labs-insight{font-size:11px;color:var(--text2);background:var(--bg3);border-radius:6px;padding:8px 10px;margin-top:8px;line-height:1.5;border-left:2px solid var(--green)}
 #bikeMap{height:260px;border-radius:10px;overflow:hidden;margin-bottom:6px;border:1px solid var(--border)}
 .sh-mood{background:linear-gradient(90deg,rgba(255,215,0,.05),transparent);border-bottom:1px solid var(--border)}
 .check-item{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;cursor:pointer;transition:background .15s;border-bottom:1px solid rgba(42,61,44,.5);background:var(--card);position:relative}
@@ -214,6 +246,8 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
     <button class="nav-tab" onclick="switchView('stats',this)">STATS</button>
     <button class="nav-tab" onclick="switchView('history',this)">LOG</button>
     <button class="nav-tab bike-nav-tab" onclick="switchView('bike',this);initBikeView()">🚲 RIDE</button>
+    <button class="nav-tab hypo-nav-tab" onclick="switchView('hypothesis',this)">🧬 WHY</button>
+    <button class="nav-tab labs-nav-tab" onclick="switchView('labs',this);initLabsView()">📊 LABS</button>
   </div>
 </nav>
 
@@ -311,6 +345,214 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
   </div>
 </div>
 
+<div class="view" id="view-hypothesis">
+
+  <div class="hypo-card">
+    <div class="hypo-card-head" style="color:#b89aff">🧬 Etiology Hypothesis
+      <span style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:auto">Updated Jun 2026 · based on lab history 2010–2026</span>
+    </div>
+    <div class="hypo-body">This tab tracks the working clinical hypothesis for Jack's OCD and depression — integrating genetics, lab history, immunology, and treatment response. It is a living document, not a diagnosis. Questions worth asking a clinician are flagged in purple.</div>
+  </div>
+
+  <!-- MTHFR -->
+  <div class="hypo-card">
+    <div class="hypo-card-head" style="color:#50c878">🔬 MTHFR C677T Homozygous — Methylation Deficit
+      <span class="hypo-confidence conf-high">● HIGH CONFIDENCE</span>
+    </div>
+    <div class="hypo-evidence">Evidence: Kashi panel 2020 (T/T confirmed) · Genomind 2017 (T/T confirmed) · Homocysteine 22.4 µmol/L (2020) → 17 µmol/L (2026, still above 16 ref) · Serum B12 elevated at ages 13, 18, 20 despite no supplementation (unconverted standard B12 accumulating)</div>
+    <div class="hypo-body">Enzyme activity ~25% of normal. The methylation cycle — which governs neurotransmitter synthesis, DNA repair, and homocysteine clearance — has been running at reduced capacity his entire life. Elevated homocysteine is independently neurotoxic and is directly implicated in depression, anxiety, and OCD symptom severity. The B12 pattern across three separate blood draws spanning 7 years confirms the conversion failure.</div>
+    <div class="hypo-divider">Current Interventions</div>
+    <div class="hypo-option hypo-option-active"><div class="hypo-option-dot dot-active"></div><div class="hypo-option-text"><strong>Enlyte (L-methylfolate 7.5mg + methyl-B12 + P5P + NAC)</strong><span>Active · bypasses broken enzyme · most critical intervention · started 2026</span></div></div>
+    <div class="hypo-option hypo-option-active"><div class="hypo-option-dot dot-active"></div><div class="hypo-option-text"><strong>Fish oil 2–3g EPA · Sauna · Exercise</strong><span>Active · all independently lower homocysteine · synergistic with Enlyte</span></div></div>
+    <div class="hypo-divider">Explore Further</div>
+    <div class="hypo-option hypo-option-explore"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Betaine (TMG) 1–3g daily</strong><span>Bypasses MTHFR via BHMT pathway · directly lowers homocysteine · ask Dr. Shosid or Greenblatt about adding</span></div></div>
+    <div class="hypo-option hypo-option-explore"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Recheck homocysteine at 8 weeks on Enlyte</strong><span>Target: below 12 µmol/L · will confirm Enlyte is working</span></div></div>
+    <div class="hypo-question">❓ Ask clinician: What is the target homocysteine on Enlyte and how long to recheck? Is adding standalone TMG appropriate alongside Enlyte?</div>
+  </div>
+
+  <!-- COMT -->
+  <div class="hypo-card">
+    <div class="hypo-card-head" style="color:#50c878">🧠 COMT Val158Met Val/Val — Low Prefrontal Dopamine
+      <span class="hypo-confidence conf-high">● HIGH CONFIDENCE</span>
+    </div>
+    <div class="hypo-evidence">Evidence: Kashi 2020 (G/G) · Genomind 2017 (Val/Val) · ADRA2A C/G (improved stimulant response) confirmed both panels</div>
+    <div class="hypo-body">COMT enzyme clears dopamine from the prefrontal cortex. Val/Val = fast clearance = chronically lower prefrontal dopamine. This directly impairs the inhibitory control circuits that resist OCD compulsions. It also means the stress response is stronger (more norepinephrine under pressure) and the reward system is less sensitive. The male COMT Val/Val pattern specifically correlates with OCD in clinical literature.</div>
+    <div class="hypo-divider">Current Interventions</div>
+    <div class="hypo-option hypo-option-active"><div class="hypo-option-dot dot-active"></div><div class="hypo-option-text"><strong>Guanfacine 4mg · TMS (prefrontal target)</strong><span>Active · Genomind 2017 explicitly noted TMS raises prefrontal dopamine for COMT Val/Val · this was known in 2017 — TMS should have started then</span></div></div>
+    <div class="hypo-option hypo-option-active"><div class="hypo-option-dot dot-active"></div><div class="hypo-option-text"><strong>Bathhouse contrast therapy (sauna + cold plunge)</strong><span>Active · dopamine +300% sustained 2–3 hrs · most powerful non-pharma dopamine intervention for this genotype</span></div></div>
+    <div class="hypo-divider">Explore Further</div>
+    <div class="hypo-option hypo-option-explore"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>L-Tyrosine 500–1000mg morning (dopamine precursor)</strong><span>COMT Val/Val burns through dopamine faster than average — extra substrate helps · take before exercise · ask clinician</span></div></div>
+    <div class="hypo-option hypo-option-explore"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Rhodiola rosea 200–400mg morning</strong><span>Adaptogen that inhibits COMT enzyme activity — directly addresses the core COMT Val/Val problem · emerging evidence for OCD and depression · ask clinician</span></div></div>
+    <div class="hypo-question">❓ Ask clinician: Is L-Tyrosine supplementation appropriate? Is Rhodiola a reasonable adjunct given COMT Val/Val? Should guanfacine timing be adjusted given CYP3A4/5 fast metabolizer status — is the effective window shorter than expected?</div>
+  </div>
+
+  <!-- PANDAS -->
+  <div class="hypo-card">
+    <div class="hypo-card-head" style="color:#e6b43c">🦠 PANDAS/PANS — Autoimmune OCD Component
+      <span class="hypo-confidence conf-med">● MEDIUM CONFIDENCE · UNCONFIRMED</span>
+    </div>
+    <div class="hypo-evidence">Evidence: ASO 179 IU/mL (ref &lt;150, HIGH) at age 13 · Dust mite allergy Class IV at age 9 (elevated IgE 151) · OCD diagnosis in childhood/adolescence · Lyme negative (2014) · EBV negative (2014) · No current ASO or Anti-DNase B on record</div>
+    <div class="hypo-body">PANDAS occurs when antibodies produced against Group A strep cross-react with neurons in the basal ganglia, producing OCD, tics, and anxiety through autoimmune neuroinflammation. The elevated ASO at age 13 documents strep antibody exposure. The key diagnostic question is whether OCD onset or worsening episodes correlated with illness — classic PANDAS presents as sudden dramatic worsening within 24–48 hours of a strep infection. If confirmed, this changes treatment substantially: anti-inflammatory therapy, antibiotic prophylaxis, and potentially IVIG become options.</div>
+    <div class="hypo-divider">Diagnostic Next Steps</div>
+    <div class="hypo-option hypo-option-explore"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Current ASO + Anti-DNase B blood test</strong><span>Most important immediate step · documents current strep antibody status · add to next blood draw</span></div></div>
+    <div class="hypo-option hypo-option-explore"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Anti-neuronal antibodies panel</strong><span>Direct evidence of autoimmune attack on basal ganglia · available through specialty labs · order through Dr. Trifiletti or Dr. Shosid</span></div></div>
+    <div class="hypo-option hypo-option-explore"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Cytokine panel (IL-6, TNF-α, CRP)</strong><span>Measures active neuroinflammation · will guide anti-inflammatory treatment decisions</span></div></div>
+    <div class="hypo-divider">Treatment If Confirmed</div>
+    <div class="hypo-option hypo-option-explore"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>NSAIDs (ibuprofen high dose, 4–6 weeks)</strong><span>Often produces dramatic OCD reduction if inflammatory etiology · used diagnostically — response confirms PANDAS</span></div></div>
+    <div class="hypo-option hypo-option-explore"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Antibiotic prophylaxis (penicillin or azithromycin daily)</strong><span>Prevents future strep triggers · standard PANDAS management · each strep exposure can cause new OCD flare</span></div></div>
+    <div class="hypo-option hypo-option-explore"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>IVIG — if confirmed treatment-resistant PANDAS</strong><span>Resets antibody profile · NIMH study showed significant OCD reduction · not first-line but legitimate option</span></div></div>
+    <div class="hypo-option hypo-option-active"><div class="hypo-option-dot dot-active"></div><div class="hypo-option-text"><strong>Curcumin 500mg + Fish oil 3g EPA — already partially addressing inflammation</strong><span>Anti-neuroinflammatory · supports regardless of PANDAS confirmation · consider adding standalone curcumin liposomal</span></div></div>
+    <div class="hypo-option hypo-option-explore"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Dr. Rosario Trifiletti, MD PhD — Ramsey NJ (30 min from NYC)</strong><span>Leading PANDAS clinician nationally · sees adult patients · referral via pandasnetwork.org</span></div></div>
+    <div class="hypo-question">❓ Critical question for Jack: Did OCD symptoms ever appear suddenly or worsen dramatically within 1–2 days of being sick? Any history of strep throat in childhood that correlated with OCD flares? This single question is highly diagnostic.</div>
+  </div>
+
+  <!-- SLC6A4 / SSRI -->
+  <div class="hypo-card">
+    <div class="hypo-card-head" style="color:#50c878">💊 SLC6A4 L(A)/S — SSRI Resistance
+      <span class="hypo-confidence conf-high">● HIGH CONFIDENCE</span>
+    </div>
+    <div class="hypo-evidence">Evidence: Genomind 2017 · L(A)/S genotype = intermediate serotonin transporter efficiency · Genomind explicitly flags caution with SSRIs</div>
+    <div class="hypo-body">The serotonin transporter gene determines how efficiently SSRIs work. The S allele (short variant) is associated with reduced SSRI response and increased anxiety/depression vulnerability. Jack's L(A)/S intermediate status means SSRIs are less likely to be effective and more likely to produce side effects at standard doses. This explains historical SSRI treatment failures if they occurred. Low doses with careful titration are warranted if SSRIs are used — and only after the inflammatory component is addressed if PANDAS is confirmed.</div>
+    <div class="hypo-divider">Current Direction</div>
+    <div class="hypo-option hypo-option-active"><div class="hypo-option-dot dot-active"></div><div class="hypo-option-text"><strong>TMS + Enlyte + lifestyle — non-SSRI first-line</strong><span>Active · appropriate given genetics · avoid SSRI monotherapy</span></div></div>
+    <div class="hypo-option hypo-option-explore"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>If SSRI is considered: start at 25% of standard dose</strong><span>SLC6A4 S allele + possible PANDAS = high sensitivity · fluvoxamine has most evidence for OCD and has some anti-inflammatory properties</span></div></div>
+    <div class="hypo-question">❓ Ask clinician: Given SLC6A4 L(A)/S, what is the evidence for fluvoxamine at low dose for OCD alongside TMS? Has this genotype been specifically studied in TMS+SSRI combination protocols?</div>
+  </div>
+
+  <!-- Thyroid -->
+  <div class="hypo-card">
+    <div class="hypo-card-head" style="color:#e6b43c">🦋 Thyroid Pattern — Suboptimal, Needs Monitoring
+      <span class="hypo-confidence conf-med">● MEDIUM CONFIDENCE · INCOMPLETE DATA</span>
+    </div>
+    <div class="hypo-evidence">Evidence: TSH 3.84 (age 12) · Free T4 HIGH 1.7 (age 12) · Total T4 HIGH 12.4 (age 12) · TSH 2.55 (age 13) · Free T4 HIGH 1.6 (age 13) · TSH 3.20 (age 24, Aug 2025) · No Free T3 or thyroid antibodies on record</div>
+    <div class="hypo-body">A consistent pattern across 13 years: mid-to-high normal TSH with slightly elevated Free T4. This pattern can indicate early Hashimoto's thyroiditis (autoimmune thyroid disease), compensated hypothyroidism, or thyroid hormone conversion issues (T4→T3). Given the possible PANDAS autoimmune component, Hashimoto's is worth screening. Thyroid dysfunction independently causes depression, cognitive impairment, and fatigue — all symptoms Jack experiences.</div>
+    <div class="hypo-divider">Diagnostic Next Steps</div>
+    <div class="hypo-option hypo-option-explore"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Free T3 + Reverse T3 + TPO antibodies + Anti-thyroglobulin</strong><span>Full thyroid panel never done · add to next blood draw · rules out Hashimoto's and T4→T3 conversion problem</span></div></div>
+    <div class="hypo-question">❓ Ask clinician: Should a full thyroid panel including TPO antibodies be added to next blood draw given the 13-year pattern of elevated Free T4 and borderline TSH?</div>
+  </div>
+
+  <!-- HDL / Metabolic -->
+  <div class="hypo-card">
+    <div class="hypo-card-head" style="color:#e6b43c">❤️ HDL Decline + LDL Rise — Cardiovascular Trend
+      <span class="hypo-confidence conf-high">● HIGH CONFIDENCE · LONGITUDINAL</span>
+    </div>
+    <div class="hypo-evidence">Evidence: HDL 46 (age 12) → 34 (age 25) · LDL 57 (age 12) → 102 (age 25) · Total cholesterol 115 (age 12) → 168 (age 25) · Smoking 5 cig/day · Sedentary until 2026</div>
+    <div class="hypo-body">A clear longitudinal trend: HDL falling, LDL rising over 13 years, driven primarily by smoking, sedentary lifestyle, and dietary pattern. HDL of 34 is clinically low (ref >39). The current protocol directly addresses this — cycling/walking, fish oil 3g EPA, and sauna all independently raise HDL. Smoking cessation would have the largest single impact on HDL. Target: HDL >45 within 12 months on current protocol.</div>
+    <div class="hypo-option hypo-option-active"><div class="hypo-option-dot dot-active"></div><div class="hypo-option-text"><strong>Exercise, fish oil, sauna — all active</strong><span>All three independently raise HDL · expect measurable improvement at next lipid panel</span></div></div>
+    <div class="hypo-option hypo-option-caution"><div class="hypo-option-dot dot-caution"></div><div class="hypo-option-text"><strong>Smoking — single largest modifiable risk factor</strong><span>5 cig/day suppresses HDL, raises homocysteine, reduces Enlyte effectiveness, blunts TMS cortical excitability</span></div></div>
+    <div class="hypo-question">❓ Ask clinician: At what LDL or HDL level would pharmacological intervention (e.g. low-dose statin or niacin) be warranted? What is the timeline for recheck given new exercise protocol?</div>
+  </div>
+
+  <!-- Vitamin D -->
+  <div class="hypo-card">
+    <div class="hypo-card-head" style="color:#e6b43c">☀️ Chronic Vitamin D Insufficiency
+      <span class="hypo-confidence conf-high">● HIGH CONFIDENCE · 13-YEAR PATTERN</span>
+    </div>
+    <div class="hypo-evidence">Evidence: Vitamin D 30 ng/mL (age 12) · Vitamin D 27.1 ng/mL (age 19) · No test since 2020 · Reference: optimal 50–70 ng/mL for neurological function</div>
+    <div class="hypo-body">Insufficient Vitamin D every time it has been tested across 13 years, despite supplementation at age 13 (D2 5 ng/mL was present). D3 at 5,000 IU daily is now active — recheck at 8 weeks to confirm levels are rising. Vitamin D deficiency independently worsens depression, OCD severity, and immune regulation (relevant to PANDAS hypothesis).</div>
+    <div class="hypo-option hypo-option-active"><div class="hypo-option-dot dot-active"></div><div class="hypo-option-text"><strong>D3 5,000 IU + K2 100mcg daily with fat</strong><span>Active · recheck at 8 weeks · target 50–70 ng/mL</span></div></div>
+    <div class="hypo-question">❓ Ask clinician: Should Vitamin D be rechecked at 8 weeks to confirm response to 5,000 IU? If still low, is 10,000 IU appropriate given body weight and malabsorption risk from MTHFR?</div>
+  </div>
+
+</div>
+<div class="view" id="view-labs">
+
+  <div class="labs-chart-card">
+    <div class="labs-chart-title">Homocysteine µmol/L</div>
+    <div class="labs-chart-sub">Target &lt;12 · Elevated &gt;16 · High cardiovascular &amp; neurotoxic risk &gt;20</div>
+    <canvas id="chartHomo" height="120"></canvas>
+    <div class="labs-ref-line">
+      <span style="color:#e05050">▬ Result</span>
+      <span style="color:#e6b43c">- - Optimal (&lt;12)</span>
+      <span style="color:#e05050">- - High risk (&gt;16)</span>
+    </div>
+    <div class="labs-insight">⚠ Persistently elevated for 6+ years. Was 22.4 in 2020, still 17 in May 2026 — above the 16 µmol/L threshold. Enlyte started June 2026 — recheck in 8 weeks expected to show meaningful reduction. Target: below 12.</div>
+  </div>
+
+  <div class="labs-chart-card">
+    <div class="labs-chart-title">HDL Cholesterol mg/dL</div>
+    <div class="labs-chart-sub">Target &gt;45 · Low risk &lt;39</div>
+    <canvas id="chartHDL" height="120"></canvas>
+    <div class="labs-ref-line">
+      <span style="color:#5ba8d8">▬ HDL</span>
+      <span style="color:#50c878">- - Target (&gt;45)</span>
+      <span style="color:#e05050">- - Low (&lt;39)</span>
+    </div>
+    <div class="labs-insight">⚠ HDL has declined 26% since age 12 (46 → 34 mg/dL). Current protocol — exercise, fish oil, sauna — should reverse this trend. Recheck at next annual physical.</div>
+  </div>
+
+  <div class="labs-chart-card">
+    <div class="labs-chart-title">LDL Cholesterol mg/dL</div>
+    <div class="labs-chart-sub">Optimal &lt;100 · Borderline 100–129</div>
+    <canvas id="chartLDL" height="120"></canvas>
+    <div class="labs-ref-line">
+      <span style="color:#e09050">▬ LDL</span>
+      <span style="color:#50c878">- - Optimal (&lt;100)</span>
+    </div>
+    <div class="labs-insight">LDL rose from 57 (age 12) to 102 (age 25) — just crossed the optimal threshold. Not alarming yet but the trajectory warrants attention. Exercise and diet changes should stabilize this.</div>
+  </div>
+
+  <div class="labs-chart-card">
+    <div class="labs-chart-title">Vitamin D ng/mL</div>
+    <div class="labs-chart-sub">Insufficient &lt;30 · Sufficient 30–50 · Optimal 50–70</div>
+    <canvas id="chartVitD" height="120"></canvas>
+    <div class="labs-ref-line">
+      <span style="color:#e6b43c">▬ Vitamin D</span>
+      <span style="color:#50c878">- - Optimal (50)</span>
+      <span style="color:#e09050">- - Sufficient (30)</span>
+    </div>
+    <div class="labs-insight">Chronically insufficient across 13 years (30 at age 12, 27.1 at age 19). D3 5,000 IU started June 2026. Expected recheck in 8 weeks should show levels rising toward optimal range of 50–70.</div>
+  </div>
+
+  <div class="labs-chart-card">
+    <div class="labs-chart-title">TSH (Thyroid Stimulating Hormone) mIU/L</div>
+    <div class="labs-chart-sub">Optimal 1.0–2.5 · Normal range 0.55–4.78 · Pattern: consistently mid-to-high</div>
+    <canvas id="chartTSH" height="120"></canvas>
+    <div class="labs-ref-line">
+      <span style="color:#b89aff">▬ TSH</span>
+      <span style="color:#50c878">- - Optimal max (2.5)</span>
+      <span style="color:#e6b43c">- - Upper normal (4.78)</span>
+    </div>
+    <div class="labs-insight">TSH has been mid-to-high normal across all tests (2013, 2014, 2025). Full thyroid panel including Free T3, Reverse T3, and TPO antibodies has never been done. Should be ordered at next blood draw to rule out subclinical hypothyroidism and Hashimoto's.</div>
+  </div>
+
+  <div class="labs-chart-card">
+    <div class="labs-chart-title">Serum B12 pg/mL</div>
+    <div class="labs-chart-sub">Elevated pattern despite no supplementation — consistent with MTHFR conversion failure</div>
+    <canvas id="chartB12" height="120"></canvas>
+    <div class="labs-ref-line">
+      <span style="color:#60c8e0">▬ Serum B12</span>
+      <span style="color:#50c878">- - Upper normal (935)</span>
+    </div>
+    <div class="labs-insight">B12 elevated at ages 13 (966), 18 (no test), and 20 (1,156) without supplementation. Standard B12 accumulates but cannot be converted to active methylcobalamin due to MTHFR. Enlyte provides methylcobalamin directly — serum B12 will likely remain high but active B12 utilization should improve.</div>
+  </div>
+
+  <div class="labs-chart-card">
+    <div class="labs-chart-title">Total IgE (Allergy Load) kU/L</div>
+    <div class="labs-chart-sub">Normal &lt;100 · Elevated &gt;100 · Dust mite allergy Class IV at age 9, Class III at age 20</div>
+    <canvas id="chartIgE" height="120"></canvas>
+    <div class="labs-ref-line">
+      <span style="color:#e09050">▬ Total IgE</span>
+      <span style="color:#e6b43c">- - Elevated threshold (100)</span>
+    </div>
+    <div class="labs-insight">Total IgE was 151 at age 9, improved to 75.7 at age 20. Dust mite allergy has been present entire life — HEPA filter, mattress encasement, and regular washing of bedding are the most impactful interventions. Allergy load is independently relevant to neuroinflammation and PANDAS hypothesis.</div>
+  </div>
+
+  <div class="labs-chart-card">
+    <div class="labs-chart-title">Next Labs to Order</div>
+    <div class="labs-chart-sub">Missing data points that would complete the clinical picture</div>
+    <div style="margin-top:4px">
+      <div class="hypo-option hypo-option-explore" style="margin-bottom:6px"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Homocysteine recheck (8 weeks on Enlyte)</strong><span>Most urgent · confirms Enlyte is working · target &lt;12</span></div></div>
+      <div class="hypo-option hypo-option-explore" style="margin-bottom:6px"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>ASO + Anti-DNase B</strong><span>PANDAS workup · documents current strep antibody status</span></div></div>
+      <div class="hypo-option hypo-option-explore" style="margin-bottom:6px"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Free T3 + Reverse T3 + TPO antibodies + Anti-thyroglobulin</strong><span>Full thyroid panel — never done in 13 years of testing</span></div></div>
+      <div class="hypo-option hypo-option-explore" style="margin-bottom:6px"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Vitamin D recheck (8 weeks on D3 5,000 IU)</strong><span>Confirm D3 response · target 50–70 ng/mL</span></div></div>
+      <div class="hypo-option hypo-option-explore" style="margin-bottom:6px"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Testosterone (free + total)</strong><span>Was 352 ng/dL at age 19 (low-normal) · recheck at 25 · relevant to mood, energy, HDL</span></div></div>
+      <div class="hypo-option hypo-option-explore" style="margin-bottom:6px"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Cytokine panel (IL-6, TNF-α, CRP-hs)</strong><span>Measures active neuroinflammation · relevant to PANDAS + OCD severity</span></div></div>
+      <div class="hypo-option hypo-option-explore" style="margin-bottom:6px"><div class="hypo-option-dot dot-explore"></div><div class="hypo-option-text"><strong>Fasting glucose + HbA1c</strong><span>Volatile glucose across labs (69–113) · rule out insulin resistance · relevant to mood and energy</span></div></div>
+    </div>
+  </div>
+
+</div>
 <div class="view" id="view-bike">
 
   <!-- Urgency Banner -->
@@ -742,6 +984,141 @@ function switchView(name,btn){
 let toastTimer;
 function showToast(msg){const ex=document.querySelector('.toast');if(ex)ex.remove();const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),300);},2800);}
 function launchConfetti(){const c=['#4CAF6B','#E8A84A','#5BA8D8','#E05050','#FFD700'];for(let i=0;i<25;i++){const p=document.createElement('div');p.className='confetti-piece';p.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${c[Math.floor(Math.random()*c.length)]};transform:rotate(${Math.random()*360}deg);animation-duration:${1.4+Math.random()}s;animation-delay:${Math.random()*.4}s;`;document.body.appendChild(p);setTimeout(()=>p.remove(),2200);}}
+
+
+// ── LABS CHARTS ───────────────────────────────────────────
+let labsInit=false;
+const LABS_DATA={
+  homo:{
+    labels:['Jun 2020','May 2026','Aug 2026*'],
+    data:[22.4,17,null],
+    projected:[null,null,10],
+    color:'#e05050',
+    refLines:[{y:12,color:'#e6b43c',dash:[5,3],label:'Optimal'},{y:16,color:'#e05050',dash:[5,3],label:'High risk'}]
+  },
+  hdl:{
+    labels:['Age 12
+2013','Age 25
+2026','Target
+2027*'],
+    data:[46,34,null],
+    projected:[null,null,45],
+    color:'#5ba8d8',
+    refLines:[{y:45,color:'#50c878',dash:[5,3]},{y:39,color:'#e05050',dash:[5,3]}]
+  },
+  ldl:{
+    labels:['Age 12
+2013','Age 22
+2023','Age 22
+2022','Age 25
+2026'],
+    data:[57.4,63,54,102],
+    color:'#e09050',
+    refLines:[{y:100,color:'#50c878',dash:[5,3]}]
+  },
+  vitd:{
+    labels:['Age 12
+2013','Age 19
+2020','Aug 2026*'],
+    data:[30,27.1,null],
+    projected:[null,null,55],
+    color:'#e6b43c',
+    refLines:[{y:50,color:'#50c878',dash:[5,3]},{y:30,color:'#e09050',dash:[5,3]}]
+  },
+  tsh:{
+    labels:['Age 12
+2013','Age 13
+2014','Age 24
+2025'],
+    data:[3.84,2.55,3.20],
+    color:'#b89aff',
+    refLines:[{y:2.5,color:'#50c878',dash:[5,3]},{y:4.78,color:'#e6b43c',dash:[5,3]}]
+  },
+  b12:{
+    labels:['Age 13
+2014','Age 20
+2020'],
+    data:[966,1156],
+    color:'#60c8e0',
+    refLines:[{y:935,color:'#50c878',dash:[5,3]}]
+  },
+  ige:{
+    labels:['Age 9
+2010','Age 20
+2020'],
+    data:[151.16,75.7],
+    color:'#e09050',
+    refLines:[{y:100,color:'#e6b43c',dash:[5,3]}]
+  }
+};
+
+function makeLabsChart(canvasId, cfg){
+  const ctx=document.getElementById(canvasId);
+  if(!ctx)return;
+  const datasets=[{
+    label:'Result',
+    data:cfg.data,
+    borderColor:cfg.color,
+    backgroundColor:cfg.color+'22',
+    borderWidth:2.5,
+    pointRadius:5,
+    pointBackgroundColor:cfg.color,
+    tension:0.3,
+    fill:true,
+    spanGaps:false
+  }];
+  if(cfg.projected){
+    datasets.push({
+      label:'Projected',
+      data:cfg.projected,
+      borderColor:cfg.color+'88',
+      borderWidth:1.5,
+      pointRadius:4,
+      pointStyle:'rectRot',
+      borderDash:[4,4],
+      tension:0.3,
+      fill:false,
+      spanGaps:false
+    });
+  }
+  const annotations={};
+  (cfg.refLines||[]).forEach((r,i)=>{
+    annotations['ref'+i]={type:'line',yMin:r.y,yMax:r.y,borderColor:r.color,borderWidth:1,borderDash:r.dash||[5,3]};
+  });
+  new Chart(ctx,{
+    type:'line',
+    data:{labels:cfg.labels,datasets},
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{display:false},
+        annotation:{annotations}
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8a9e8a',font:{size:9},maxRotation:0}},
+        y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8a9e8a',font:{size:9}}}
+      }
+    }
+  });
+}
+
+function initLabsView(){
+  if(labsInit)return;
+  labsInit=true;
+  // Load annotation plugin inline
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js';
+  s.onload=()=>{
+    makeLabsChart('chartHomo',LABS_DATA.homo);
+    makeLabsChart('chartHDL',LABS_DATA.hdl);
+    makeLabsChart('chartLDL',LABS_DATA.ldl);
+    makeLabsChart('chartVitD',LABS_DATA.vitd);
+    makeLabsChart('chartTSH',LABS_DATA.tsh);
+    makeLabsChart('chartB12',LABS_DATA.b12);
+    makeLabsChart('chartIgE',LABS_DATA.ige);
+  };
+  document.head.appendChild(s);
+}
 
 // ── BIKE VIEW ─────────────────────────────────────────────
 let bikeMapInst=null,bikeViewInit=false;
