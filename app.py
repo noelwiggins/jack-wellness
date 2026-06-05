@@ -542,6 +542,65 @@ def bike_news():
 def health():
     return jsonify({"status": "ok", "version": PROTOCOL_VERSION})
 
+@app.route('/api/claude_context')
+def api_claude_context():
+    """Assembles Jack's clinical context for Claude queries."""
+    import json
+
+    # Build protocol summary from SECTIONS
+    protocol_lines = []
+    for section in SECTIONS:
+        protocol_lines.append(f"\n[{section['label']}]")
+        for item in section.get('items', []):
+            tag = item.get('tagLabel', '')
+            note = item.get('note', '')[:150]
+            protocol_lines.append(f"  {'⚠ ' if tag in ('Critical','Avoid') else '• '}{item['label']}{f' ({tag})' if tag else ''}")
+            if note:
+                protocol_lines.append(f"      {note}")
+
+    context = """PATIENT: Jack Wiggins, age 25, Brooklyn NY. NYU Psychology graduate. Son of Noel Wiggins.
+
+GENETICS (KEY):
+- MTHFR C677T HOMOZYGOUS (both copies) — severe methylation impairment. Most critical finding.
+- COMT Val/Val — slow dopamine breakdown in prefrontal cortex. Sensitive to stress, caffeine, stimulants.
+- SLC6A4 variant — serotonin transporter. Influences SSRI response.
+- MTRR A66G — methionine synthase reductase. Compounds MTHFR methylation deficit.
+
+CURRENT MEDICATIONS & SUPPLEMENTS:
+- Enlyte (Rx): L-methylfolate 7mg + folinic acid 3.5mg + adenosylcobalamin B12 50mcg + P5P trace
+- Guanfacine 4mg (prescribed) — prefrontal/ADHD support, synergistic with TMS
+- Vitamin D3 5,000 IU + K2 100mcg daily with fat
+- Fish oil 2-3g EPA with largest meal
+- Vitamin E 400 IU (mixed tocopherols) with dinner
+- Magnesium glycinate 300-400mg at 9:45 PM
+- Melatonin 0.3-0.5mg at 9 PM (Phase 2 — after established on magnesium)
+
+KEY AVOID:
+- Synthetic folic acid (fortified cereals, enriched breads) — competes with Enlyte methylfolate receptors
+- High-dose melatonin (5-10mg gummies) — testosterone risk
+- French press / espresso — diterpenes raise homocysteine
+- Green tea within 45 min of Enlyte — tannins reduce methylfolate absorption
+- THC on TMS days
+
+ACTIVE TREATMENT:
+- TMS (Transcranial Magnetic Stimulation) — prescribed, scheduled sessions
+- Protocol designed to support TMS neuroplasticity: exercise within 2 hrs of TMS amplifies response
+
+CLINICAL HYPOTHESIS (7 evidence-based factors):
+1. MTHFR C677T homozygous — impaired methylation → low SAM → low serotonin/dopamine synthesis
+2. COMT Val/Val — slow prefrontal dopamine breakdown → reward circuit dysregulation
+3. Elevated homocysteine (was elevated) — neurotoxic, correlates with depression severity
+4. Low Vitamin D (was insufficient in 2020 labs) — neuroinflammation, mood regulation
+5. Vitamin E deficiency (2020) — antioxidant capacity, myelin integrity
+6. Mitochondrial dysfunction — supports red light sauna, cold plunge protocol
+7. Circadian dysregulation — anchor sleep protocol (10:30 PM / 9:00 AM)
+
+PROTOCOL HIGHLIGHTS:
+""" + '\n'.join(protocol_lines)
+
+    return jsonify({'context': context, 'version': PROTOCOL_VERSION})
+
+
 if __name__ == '__main__':
     init_db()
     port = int(os.environ.get('PORT', 5000))

@@ -27,6 +27,25 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .nav{position:sticky;top:0;z-index:100;background:rgba(13,20,16,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;height:56px}
 .nav-logo{font-family:'Playfair Display',serif;font-style:italic;font-size:19px;color:var(--green);flex:1;letter-spacing:-.3px}
 .nav-ver{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);margin-right:8px;letter-spacing:.5px}
+.ai-bar{background:linear-gradient(135deg,#1a0a2e 0%,#2d1b69 60%,#3730a3 100%);padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(99,102,241,.3)}
+.ai-bar-label{color:#a5b4fc;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.ai-bar-input{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:7px 14px;color:white;font-size:12px;outline:none;transition:all .2s;font-family:-apple-system,sans-serif}
+.ai-bar-input::placeholder{color:rgba(255,255,255,.35)}
+.ai-bar-input:focus{background:rgba(255,255,255,.12);border-color:rgba(165,180,252,.5)}
+.ai-bar-btn{background:#6366f1;color:white;border:none;border-radius:16px;padding:7px 16px;font-size:11px;font-weight:700;cursor:pointer;transition:background .2s;white-space:nowrap;flex-shrink:0;font-family:'JetBrains Mono',monospace;letter-spacing:.3px}
+.ai-bar-btn:hover{background:#4f46e5}
+.ai-bar-btn:disabled{background:#6366f155;cursor:not-allowed}
+.ai-response-panel{background:linear-gradient(135deg,#120820 0%,#1e1040 100%);border-bottom:1px solid rgba(99,102,241,.25);padding:0 16px;max-height:0;overflow:hidden;transition:max-height .35s ease,padding .35s ease}
+.ai-response-panel.open{max-height:400px;padding:14px 16px;overflow-y:auto}
+.ai-response-text{color:#e0e7ff;font-size:12px;line-height:1.7;white-space:pre-wrap}
+.ai-response-text strong{color:#a5b4fc}
+.ai-chips-row{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 10px;background:linear-gradient(135deg,#120820 0%,#1e1040 100%);border-bottom:1px solid rgba(99,102,241,.2)}
+.ai-chip{background:rgba(255,255,255,.06);border:1px solid rgba(165,180,252,.25);border-radius:12px;padding:4px 10px;font-size:10px;color:#a5b4fc;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:'JetBrains Mono',monospace}
+.ai-chip:hover{background:rgba(99,102,241,.25);color:white;border-color:rgba(165,180,252,.5)}
+.ai-dots span{display:inline-block;width:5px;height:5px;background:#6366f1;border-radius:50%;animation:aiDot 1.2s infinite;margin:0 2px}
+.ai-dots span:nth-child(2){animation-delay:.2s}
+.ai-dots span:nth-child(3){animation-delay:.4s}
+@keyframes aiDot{0%,80%,100%{transform:scale(.7);opacity:.4}40%{transform:scale(1);opacity:1}}
 .nav-tabs{display:flex;gap:2px}
 .nav-tab{padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;color:var(--text3);transition:all .2s;font-family:'JetBrains Mono',monospace;letter-spacing:.3px;border:none;background:transparent}
 .nav-tab.active{background:var(--green-glow);color:var(--green)}
@@ -238,6 +257,25 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 </style>
 </head>
 <body>
+<div class="ai-bar">
+  <span class="ai-bar-label">✦ Ask Claude</span>
+  <input class="ai-bar-input" id="ai-input" type="text"
+    placeholder="Ask about your protocol, supplements, genetics, or why something is in your plan…"
+    onkeydown="if(event.key==='Enter') askClaude()">
+  <button class="ai-bar-btn" id="ai-btn" onclick="askClaude()">ASK</button>
+</div>
+<div class="ai-response-panel" id="ai-response">
+  <div class="ai-response-text" id="ai-response-text"></div>
+</div>
+<div class="ai-chips-row">
+  <span class="ai-chip" onclick="chipAsk(this)">Why do I take Enlyte?</span>
+  <span class="ai-chip" onclick="chipAsk(this)">Explain my MTHFR mutation</span>
+  <span class="ai-chip" onclick="chipAsk(this)">Why avoid folic acid?</span>
+  <span class="ai-chip" onclick="chipAsk(this)">How does TMS work with my protocol?</span>
+  <span class="ai-chip" onclick="chipAsk(this)">Why is morning exercise critical for me?</span>
+  <span class="ai-chip" onclick="chipAsk(this)">What does COMT Val/Val mean?</span>
+  <span class="ai-chip" onclick="chipAsk(this)">Why no coffee after 10:30 AM?</span>
+</div>
 <nav class="nav">
   <div class="nav-logo">Jack's Protocol</div>
   <div class="nav-ver" id="versionLabel">v—</div>
@@ -1193,6 +1231,65 @@ async function loadBikeNews(){
 }
 
 init();
+
+// ── AI QUERY BOX ──────────────────────────────────────────────────────────
+let _jackCtx = null;
+async function getJackContext() {
+  if (_jackCtx) return _jackCtx;
+  const r = await fetch('/api/claude_context');
+  const d = await r.json();
+  _jackCtx = d.context;
+  return _jackCtx;
+}
+function chipAsk(el) {
+  document.getElementById('ai-input').value = el.textContent;
+  askClaude();
+}
+async function askClaude() {
+  const input = document.getElementById('ai-input');
+  const btn = document.getElementById('ai-btn');
+  const panel = document.getElementById('ai-response');
+  const textEl = document.getElementById('ai-response-text');
+  const q = input.value.trim();
+  if (!q) return;
+  btn.disabled = true; btn.textContent = '...';
+  panel.classList.add('open');
+  textEl.innerHTML = '<span style="color:#a5b4fc"><span class="ai-dots"><span></span><span></span><span></span></span> Checking your protocol…</span>';
+  try {
+    const ctx = await getJackContext();
+    const sys = `You are a knowledgeable health assistant helping Jack Wiggins understand his personalized wellness protocol.
+You have access to his complete clinical context and daily protocol below.
+Rules:
+- Be direct and specific. Address him as Jack.
+- Explain the science behind protocol items in plain language.
+- His genetics (MTHFR C677T homozygous, COMT Val/Val) are central to everything — always tie explanations back to them.
+- Never diagnose or prescribe — help him understand his existing protocol.
+- Keep responses focused, under 350 words unless detail is needed.
+- Use his protocol data when answering — be specific, not generic.
+
+JACK'S CLINICAL CONTEXT:
+${ctx}`;
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: sys,
+        messages: [{role: 'user', content: q}]
+      })
+    });
+    const data = await resp.json();
+    const answer = data.content?.[0]?.text || 'Could not get a response. Please try again.';
+    textEl.innerHTML = answer
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+  } catch(e) {
+    textEl.innerHTML = '<span style="color:#fca5a5">Error — please try again.</span>';
+  }
+  btn.disabled = false; btn.textContent = 'ASK';
+}
+setTimeout(getJackContext, 2000);
 </script>
 </body>
 </html>
