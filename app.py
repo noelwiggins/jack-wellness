@@ -76,7 +76,7 @@ SECTIONS = [
         "color": "supplements",
         "xpEach": 4,
         "items": [
-            {"id": "sup1", "label": "Enlyte — 1 capsule with breakfast", "note": "L-methylfolate 7.5mg + methyl-B12 + P5P + NAC · most critical intervention for MTHFR C677T homozygous", "tag": "crit", "tagLabel": "Critical"},
+            {"id": "sup1", "label": "Enlyte — 1 capsule with breakfast", "note": "L-methylfolate 7mg + folinic acid 3.5mg + adenosylcobalamin B12 50mcg + P5P trace · adenosylcobalamin is the mitochondrial B12 form (not methylcobalamin) — both are active, both superior to cyanocobalamin · most critical intervention for MTHFR C677T homozygous", "tag": "crit", "tagLabel": "Critical"},
             {"id": "sup2", "label": "Vitamin D3 5,000 IU + K2 100mcg with breakfast", "note": "Take with fat · was insufficient in 2020 labs · target 50-70 ng/mL", "tag": "crit", "tagLabel": "Critical"},
             {"id": "sup3", "label": "Fish oil 2–3g EPA with largest meal", "note": "EPA:DHA ratio favoring EPA · raises HDL · antidepressant evidence for COMT Val/Val", "tag": "key", "tagLabel": "Key"},
             {"id": "sup4", "label": "Vitamin E 400 IU (mixed tocopherols) with dinner", "note": "Was deficient in 2020 labs · take with fat · mixed not alpha-only", "tag": "daily", "tagLabel": "Daily"},
