@@ -152,6 +152,47 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .hypo-nav-tab.active{background:rgba(160,120,255,.12) !important;color:#c8b0ff !important;border-color:rgba(160,120,255,.5) !important}
 .labs-nav-tab{color:#60c8e0 !important;border:1px solid rgba(80,180,220,.3) !important}
 .labs-nav-tab.active{background:rgba(80,180,220,.12) !important;color:#80d8f0 !important;border-color:rgba(80,180,220,.5) !important}
+.rpt-nav-tab{color:#f0a870 !important;border:1px solid rgba(240,168,112,.3) !important}
+.rpt-nav-tab.active{background:rgba(240,168,112,.12) !important;color:#f8c090 !important;border-color:rgba(240,168,112,.5) !important}
+/* Reports tab styles */
+.rpt-section-label{font-size:9px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8a7a6a;margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid rgba(240,168,112,.2);font-family:'JetBrains Mono',monospace}
+.rpt-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.rpt-card-head{font-size:13px;font-weight:600;color:#f8c090;margin-bottom:4px;font-family:'Playfair Display',serif}
+.rpt-card-sub{font-size:10px;color:#8a7a6a;font-family:'JetBrains Mono',monospace;margin-bottom:10px}
+.rpt-mini{background:var(--bg3);border-radius:8px;padding:8px 11px;margin-bottom:7px}
+.rpt-mini-head{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:3px}
+.rpt-mini-body{font-size:11px;color:var(--text3);line-height:1.65}
+.rpt-quote{font-size:11px;color:#a09080;font-style:italic;padding:7px 10px;background:rgba(240,168,112,.06);border-radius:7px;margin-top:7px;border-left:2px solid rgba(240,168,112,.35);line-height:1.6}
+.rpt-pill{font-size:10px;padding:2px 8px;border-radius:11px;border:1px solid;display:inline-block;margin:2px 2px 2px 0;font-family:'JetBrains Mono',monospace}
+.rpt-pg{background:rgba(76,175,107,.12);color:#4caf6b;border-color:rgba(76,175,107,.3)}
+.rpt-pr{background:rgba(220,80,80,.12);color:#e05050;border-color:rgba(220,80,80,.3)}
+.rpt-pa{background:rgba(230,180,60,.12);color:#e6b43c;border-color:rgba(230,180,60,.3)}
+.rpt-pb{background:rgba(80,180,220,.12);color:#50b4dc;border-color:rgba(80,180,220,.3)}
+.rpt-pp{background:rgba(160,120,255,.12);color:#a078ff;border-color:rgba(160,120,255,.3)}
+.rpt-alert{border-radius:8px;padding:9px 12px;font-size:11px;line-height:1.6;display:flex;gap:8px;margin-top:10px;font-family:'JetBrains Mono',monospace}
+.rpt-alert-t{background:rgba(76,175,107,.1);color:#4caf6b;border:1px solid rgba(76,175,107,.25)}
+.rpt-alert-a{background:rgba(230,180,60,.1);color:#e6b43c;border:1px solid rgba(230,180,60,.25)}
+.rpt-alert-b{background:rgba(80,180,220,.1);color:#50b4dc;border:1px solid rgba(80,180,220,.25)}
+.rpt-score-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(42,61,44,.35)}
+.rpt-score-row:last-child{border-bottom:none}
+.rpt-score-name{font-size:11px;color:var(--text2);flex:1;font-family:'JetBrains Mono',monospace}
+.rpt-score-track{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.rpt-score-fill{height:100%;border-radius:3px}
+.rpt-score-pct{font-size:10px;font-weight:700;width:42px;text-align:right;font-family:'JetBrains Mono',monospace}
+.rpt-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rpt-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.rpt-metric{background:var(--bg3);border-radius:8px;padding:8px 10px;text-align:center}
+.rpt-metric-num{font-size:20px;font-weight:700;margin:2px 0;font-family:'JetBrains Mono',monospace}
+.rpt-metric-lbl{font-size:10px;color:#8a7a6a;font-family:'JetBrains Mono',monospace}
+.rpt-grade-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:4px;font-family:'JetBrains Mono',monospace}
+.rpt-gc{font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px}
+.rpt-ga{background:rgba(76,175,107,.15);color:#4caf6b}
+.rpt-gb{background:rgba(80,180,220,.15);color:#50b4dc}
+.rpt-gcc{background:rgba(230,180,60,.15);color:#e6b43c}
+.rpt-gp{background:var(--bg3);color:#8a7a6a}
+.rpt-synthesis-item{background:var(--bg3);border-radius:8px;padding:9px 12px;margin-bottom:8px}
+.rpt-synthesis-head{font-size:11px;font-weight:600;margin-bottom:4px}
+.rpt-synthesis-body{font-size:11px;color:var(--text3);line-height:1.65}
 .hypo-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
 .hypo-card-head{font-family:'Playfair Display',serif;font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .hypo-confidence{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-family:'JetBrains Mono',monospace;padding:3px 8px;border-radius:10px;margin-left:auto}
@@ -286,6 +327,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
     <button class="nav-tab bike-nav-tab" onclick="switchView('bike',this);initBikeView()">🚲 RIDE</button>
     <button class="nav-tab hypo-nav-tab" onclick="switchView('hypothesis',this)">🧬 WHY</button>
     <button class="nav-tab labs-nav-tab" onclick="switchView('labs',this);initLabsView()">📊 LABS</button>
+    <button class="nav-tab rpt-nav-tab" onclick="switchView('reports',this)">📋 REPORTS</button>
   </div>
   <a href="/logout" style="font-size:11px;color:var(--text3);text-decoration:none;padding:5px 8px;border-radius:6px;border:1px solid var(--border);font-family:'JetBrains Mono',monospace;letter-spacing:.3px;transition:color .2s;" onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'">lock</a>
 </nav>
@@ -1291,5 +1333,137 @@ ${ctx}`;
 }
 setTimeout(getJackContext, 2000);
 </script>
+
+<div class="view" id="view-reports">
+<div class="rpt-section-label">Earliest evaluation — Carlos Prieto, Ph.D. · Jan 2007 · Age 5 (Kindergarten)</div>
+<div class="rpt-card">
+  <div class="rpt-card-head">📄 Comprehensive Psycho-Educational Report</div>
+  <div class="rpt-card-sub">WPPSI-III · CELF-III · NEPSY · WRAML-II · WJ-III · Rorschach · TAT · The Dillion Center, Brooklyn</div>
+  <div class="rpt-grid3" style="margin-bottom:10px">
+    <div class="rpt-metric"><div class="rpt-metric-lbl">Full Scale IQ</div><div class="rpt-metric-num" style="color:#4caf6b">110</div><div class="rpt-metric-lbl">75th %ile</div></div>
+    <div class="rpt-metric"><div class="rpt-metric-lbl">Verbal IQ</div><div class="rpt-metric-num" style="color:#4caf6b">114</div><div class="rpt-metric-lbl">82nd %ile</div></div>
+    <div class="rpt-metric"><div class="rpt-metric-lbl">Processing Speed</div><div class="rpt-metric-num" style="color:#e05050">78</div><div class="rpt-metric-lbl">7th %ile</div></div>
+  </div>
+  <div class="rpt-score-row"><span class="rpt-score-name">Similarities — verbal abstract reasoning</span><div class="rpt-score-track"><div class="rpt-score-fill" style="width:98%;background:#4caf6b"></div></div><span class="rpt-score-pct" style="color:#4caf6b">98th</span></div>
+  <div class="rpt-score-row"><span class="rpt-score-name">Vocabulary</span><div class="rpt-score-track"><div class="rpt-score-fill" style="width:95%;background:#4caf6b"></div></div><span class="rpt-score-pct" style="color:#4caf6b">95th</span></div>
+  <div class="rpt-score-row"><span class="rpt-score-name">Math Calculation</span><div class="rpt-score-track"><div class="rpt-score-fill" style="width:97%;background:#4caf6b"></div></div><span class="rpt-score-pct" style="color:#4caf6b">97th</span></div>
+  <div class="rpt-score-row"><span class="rpt-score-name">Story Memory (verbal)</span><div class="rpt-score-track"><div class="rpt-score-fill" style="width:84%;background:#50b4dc"></div></div><span class="rpt-score-pct" style="color:#50b4dc">84th</span></div>
+  <div class="rpt-score-row"><span class="rpt-score-name">Letter Fluency (NEPSY)</span><div class="rpt-score-track"><div class="rpt-score-fill" style="width:95%;background:#50b4dc"></div></div><span class="rpt-score-pct" style="color:#50b4dc">95th</span></div>
+  <div class="rpt-score-row"><span class="rpt-score-name">Coding / Symbol Search (processing speed)</span><div class="rpt-score-track"><div class="rpt-score-fill" style="width:10%;background:#e6b43c"></div></div><span class="rpt-score-pct" style="color:#e6b43c">5–16th</span></div>
+  <div class="rpt-score-row"><span class="rpt-score-name">Spelling</span><div class="rpt-score-track"><div class="rpt-score-fill" style="width:5%;background:#e05050"></div></div><span class="rpt-score-pct" style="color:#e05050">5th</span></div>
+  <div class="rpt-score-row"><span class="rpt-score-name">Design &amp; Picture Memory (visual)</span><div class="rpt-score-track"><div class="rpt-score-fill" style="width:4%;background:#e05050"></div></div><span class="rpt-score-pct" style="color:#e05050">3–5th</span></div>
+  <div class="rpt-score-row"><span class="rpt-score-name">Drawing / Visual-Motor (WRAVMA)</span><div class="rpt-score-track"><div class="rpt-score-fill" style="width:5%;background:#e05050"></div></div><span class="rpt-score-pct" style="color:#e05050">5th</span></div>
+  <div class="rpt-quote">"There is no question that Jack is an intellectually capable child; he is intellectually curious, is fascinated by ideas, and already has a vast store of knowledge... His ability to make conceptual links between seemingly disparate ideas was in the very superior range (98th %ile)."</div>
+  <div style="margin-top:10px">
+    <span class="rpt-pill rpt-pg">Exceptional verbal reasoning</span><span class="rpt-pill rpt-pg">Superior math concepts</span><span class="rpt-pill rpt-pg">Rich narrative/imaginative play</span><span class="rpt-pill rpt-pg">Unusually evolved emotionally</span><span class="rpt-pill rpt-pr">Fine motor severely delayed</span><span class="rpt-pill rpt-pr">Visual-spatial very weak</span><span class="rpt-pill rpt-pr">Processing speed 7th %ile</span><span class="rpt-pill rpt-pa">Attention wavering</span><span class="rpt-pill rpt-pa">Fatigue / regulation issues</span>
+  </div>
+  <div class="rpt-alert rpt-alert-b">ⓘ Visual processing deficit confirmed structural — not effort-related. Motor overflow during writing (whole-body tensing). Evaluator: "Jack rises to the occasion when more is expected of him" — confirmed by every subsequent evaluator across 13 years.</div>
+</div>
+
+<div class="rpt-section-label">Visual information processing eval · May 2008 · Age 7</div>
+<div class="rpt-card">
+  <div class="rpt-card-head">👁 Optometric Vision Evaluation — Dr. Cristina Illerena, O.D.</div>
+  <div class="rpt-card-sub">Eye health · tracking · accommodation · binocular fusion · visual perceptual skills</div>
+  <div class="rpt-mini"><div class="rpt-mini-body">Eyes structurally healthy (20/20 acuity bilaterally). Functional deficits confirmed: hyperopia, accommodative insufficiency, binocular instability, and oculomotor dysfunction — eye tracking and saccades below grade level.</div></div>
+  <div style="margin-top:6px"><span class="rpt-pill rpt-pb">Visual memory 61st %ile</span><span class="rpt-pill rpt-pa">Visual discrimination 39th %ile</span><span class="rpt-pill rpt-pr">Visual form constancy 1st %ile</span><span class="rpt-pill rpt-pr">Visual seq. memory 6th %ile</span><span class="rpt-pill rpt-pr">Beery VMI 5th %ile</span><span class="rpt-pill rpt-pg">Eye health — normal</span></div>
+  <div class="rpt-alert rpt-alert-a">⚠ Binocular instability directly compounds reading and writing difficulty — the eyes lack flexibility converging/diverging while reading. A separate neurological layer explaining why visual-spatial scores were at floor even with high-average IQ. 35–40 sessions of vision therapy recommended.</div>
+</div>
+
+<div class="rpt-section-label">Report card — Mary McDowell · Jan 2009 · Age 8 (2nd grade)</div>
+<div class="rpt-card">
+  <div class="rpt-card-head">📋 Mid-Year Report — Norman Krisberg Room</div>
+  <div class="rpt-card-sub">Teachers: Rachel Perkes, Tali Fischer · Self-contained class of 10 · 1st year MMFS</div>
+  <div class="rpt-mini"><div class="rpt-mini-head">Highlights</div><div class="rpt-mini-body">Transition to new school went smoothly. Described as friendly, gregarious, and "a pleasure and delight to have in the classroom." Formed positive rapport with teachers. When interested in topics, "lit up and became animated." Active in discussions. Enjoyed imaginative play and Legos with peers.</div></div>
+  <div class="rpt-mini"><div class="rpt-mini-head">Challenges</div><div class="rpt-mini-body">Consistent redirection needed. Difficulty with multi-step directions. Energy oscillated between fatigued and over-stimulated. Sensory strategies (ball chair, weighted vest) tried — ineffective. Transitions between activities challenging. Self-regulation the primary year goal.</div></div>
+  <div style="margin-top:6px"><span class="rpt-pill rpt-pg">Strong social engagement</span><span class="rpt-pill rpt-pg">Warm, empathic</span><span class="rpt-pill rpt-pg">Verbal participation strong</span><span class="rpt-pill rpt-pa">Needs frequent redirection</span><span class="rpt-pill rpt-pa">Energy regulation variable</span><span class="rpt-pill rpt-pr">Multi-step directions difficult</span></div>
+</div>
+
+<div class="rpt-section-label">Report card — Mary McDowell · Jan–Feb 2010 · Age 9 (3rd grade)</div>
+<div class="rpt-card">
+  <div class="rpt-card-head">📋 Mid-Year Report — Violet Longobardi Room</div>
+  <div class="rpt-card-sub">Teachers: Jennifer Shirazi, Heather Harken · OT once/week + language therapy twice/week</div>
+  <div class="rpt-mini"><div class="rpt-mini-head">Reading — Orton-Gillingham PAF program</div><div class="rpt-mini-body">Active participant in structured multisensory reading. Demonstrated knowledge of phonemes and red words. Improved following along during group reading across semester. Enjoyed chapter books more than decodable readers. Accuracy improving with support.</div></div>
+  <div class="rpt-mini"><div class="rpt-mini-head">Ongoing challenges</div><div class="rpt-mini-body">Daily teacher support needed to transition into reading group. Lost in own thoughts during dictation. Impulsive calling out. Energy fluctuated between stretched-out-on-desk and over-excited. Self-monitoring remained the primary skill to develop.</div></div>
+  <div class="rpt-quote">"When he was able to sustain his attention during lessons, he was excited about new facts that he learned and liked contributing his thoughts and prior knowledge with the class."</div>
+  <div style="margin-top:8px"><span class="rpt-pill rpt-pg">Enjoys learning new things</span><span class="rpt-pill rpt-pg">Decoding improving</span><span class="rpt-pill rpt-pg">Emerging leader in play</span><span class="rpt-pill rpt-pa">Impulsive calling out</span><span class="rpt-pill rpt-pa">Inconsistent self-monitoring</span><span class="rpt-pill rpt-pr">Self-regulation primary challenge</span></div>
+</div>
+
+<div class="rpt-section-label">Standardized testing — Terra Nova · May 2015 · Age 14 (7th grade)</div>
+<div class="rpt-card">
+  <div class="rpt-card-head">📊 Terra Nova Complete Battery — Grade 7.7 · MMFS · Extended time</div>
+  <div class="rpt-card-sub">National norms · Test Date May 15, 2015</div>
+  <div class="rpt-score-row"><span class="rpt-score-name">Reading composite</span><div class="rpt-score-track"><div class="rpt-score-fill" style="width:85%;background:#4caf6b"></div></div><span class="rpt-score-pct" style="color:#4caf6b">85th</span></div>
+  <div class="rpt-score-row"><span class="rpt-score-name">Vocabulary</span><div class="rpt-score-track"><div class="rpt-score-fill" style="width:80%;background:#4caf6b"></div></div><span class="rpt-score-pct" style="color:#4caf6b">~80th</span></div>
+  <div class="rpt-score-row"><span class="rpt-score-name">Math composite</span><div class="rpt-score-track"><div class="rpt-score-fill" style="width:25%;background:#e6b43c"></div></div><span class="rpt-score-pct" style="color:#e6b43c">~25th</span></div>
+  <div class="rpt-score-row"><span class="rpt-score-name">Math computation</span><div class="rpt-score-track"><div class="rpt-score-fill" style="width:12%;background:#e05050"></div></div><span class="rpt-score-pct" style="color:#e05050">below avg</span></div>
+  <div class="rpt-alert rpt-alert-t">↑ Reading at 85th %ile nationally — a striking turnaround from kindergarten. Six years of Orton-Gillingham at MMFS paid off. The verbal brain found its channel through structured decoding instruction.</div>
+  <div class="rpt-alert rpt-alert-a">⚠ Math below average nationally — consistent with processing speed and math fluency deficits. Strong conceptual understanding when given time; automated fact retrieval remains the bottleneck.</div>
+</div>
+
+<div class="rpt-section-label">Report card — Mary McDowell · Feb 2014 · Age 12–13 (6th grade)</div>
+<div class="rpt-card">
+  <div class="rpt-card-head">📋 Middle School Trimester Report — Alice Paul House</div>
+  <div class="rpt-card-sub">Giselle Castaño &amp; Finlay Logan · Literacy: Beth Bucher · Math: Linda Stone · Class of 12</div>
+  <div class="rpt-mini"><div class="rpt-mini-head">Overall</div><div class="rpt-mini-body">Brings "great positive and joyful energy." Friend to everyone. "Very engaging conversationalist." Makes abstract connections independently. High test scores in content classes. Strong critical thinking in history.</div></div>
+  <div class="rpt-mini"><div class="rpt-mini-head">Literacy — Beth Bucher</div><div class="rpt-mini-body">Strong inferential comprehension. Wide background knowledge leveraged effectively. Infers character emotion and supports with textual evidence. Challenge: written output requires scaffolded questioning and revising checklists. Homework inconsistent due to organization struggles.</div><div class="rpt-quote">"You know, it's like when..." followed by an articulate real-world connection often led to deeper understanding for everyone in the group.</div></div>
+  <div class="rpt-mini"><div class="rpt-mini-head">Math — Linda Stone</div><div class="rpt-mini-body">Participates eagerly. Explains problems at the board effectively. Good conceptual understanding. Daily timed multiplication drills — "never failed to improve speed and accuracy." Benefited from multiplication table aid.</div></div>
+  <div class="rpt-mini"><div class="rpt-mini-head">Behavioral progress this year</div><div class="rpt-mini-body">Teacher-student behavior chart created for socializing and direction-following. "Jack himself was very proud of his success." By report time: navigating most classes without the chart. Significant self-regulation improvement documented.</div></div>
+  <div style="margin-top:6px"><span class="rpt-pill rpt-pg">Joyful classroom presence</span><span class="rpt-pill rpt-pg">Strong abstract thinking</span><span class="rpt-pill rpt-pg">Excellent inferential comprehension</span><span class="rpt-pill rpt-pg">Improved self-regulation</span><span class="rpt-pill rpt-pg">Social leader</span><span class="rpt-pill rpt-pa">Written output struggles</span><span class="rpt-pill rpt-pa">Homework organization weak</span><span class="rpt-pill rpt-pr">Impulsive tech use</span></div>
+</div>
+
+<div class="rpt-section-label">Report card — Mary McDowell Friends School · June 2017 · Age 16 (9th grade)</div>
+<div class="rpt-card">
+  <div class="rpt-card-head">📋 Upper School Semester 2 — Grade 9</div>
+  <div class="rpt-card-sub">Advisors: Ricardo Caceres, Amanda Toomey</div>
+  <div class="rpt-grid2" style="margin-bottom:10px">
+    <div>
+      <div style="font-size:10px;font-weight:700;color:#8a7a6a;margin-bottom:6px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.07em">Semester grades</div>
+      <div class="rpt-grade-row"><span>Band</span><span class="rpt-gc rpt-ga">A</span></div>
+      <div class="rpt-grade-row"><span>PE</span><span class="rpt-gc rpt-ga">A</span></div>
+      <div class="rpt-grade-row"><span>20th Century History</span><span class="rpt-gc rpt-ga">A</span></div>
+      <div class="rpt-grade-row"><span>English 9</span><span class="rpt-gc rpt-ga">A</span></div>
+      <div class="rpt-grade-row"><span>Pre-Algebra</span><span class="rpt-gc rpt-ga">A</span></div>
+      <div class="rpt-grade-row"><span>Spanish I</span><span class="rpt-gc rpt-gb">B</span></div>
+      <div class="rpt-grade-row"><span>Conceptual Physics</span><span class="rpt-gc rpt-gcc">C+</span></div>
+      <div class="rpt-grade-row"><span>Freshman Workshop</span><span class="rpt-gc rpt-gp">Pass</span></div>
+    </div>
+    <div>
+      <div style="font-size:10px;font-weight:700;color:#8a7a6a;margin-bottom:6px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.07em">Attendance (full year)</div>
+      <div class="rpt-metric" style="margin-bottom:6px"><div class="rpt-metric-lbl">Days absent</div><div class="rpt-metric-num" style="color:#e6b43c">7</div><div class="rpt-metric-lbl">full year</div></div>
+      <div class="rpt-metric"><div class="rpt-metric-lbl">Days tardy</div><div class="rpt-metric-num" style="color:#e05050">44</div><div class="rpt-metric-lbl">32 unexcused</div></div>
+    </div>
+  </div>
+  <div class="rpt-mini"><div class="rpt-mini-body">The word "passionate" used independently by every teacher. Outstanding performance on veteran service day — deep, thoughtful conversations. Multiple A grades. Noticeable positive behavioral change from year start to year end.</div><div class="rpt-quote">"When you are passionate about something there is no stopping you. You become extremely focused and have the ability to pull in everyone around you. This is a skill that cannot be taught."</div></div>
+  <div class="rpt-mini"><div class="rpt-mini-head">Challenges</div><div class="rpt-mini-body">Tardiness the primary structural challenge — 44 tardy episodes requiring detention. Side conversations during class needed multiple redirections. Attentional lapses caused missed content. Afternoon transitions and end-of-day organization remained difficult.</div></div>
+  <div style="margin-top:6px"><span class="rpt-pill rpt-pg">Mostly A grades</span><span class="rpt-pill rpt-pg">Passionate learner</span><span class="rpt-pill rpt-pg">Elevates class discussion</span><span class="rpt-pill rpt-pg">Strong empathy — veteran service day</span><span class="rpt-pill rpt-pa">Physics weakest (C+)</span><span class="rpt-pill rpt-pr">44 tardies in school year</span><span class="rpt-pill rpt-pr">Consistent redirection needed</span></div>
+</div>
+
+<div class="rpt-section-label">Cross-document synthesis — 2007–2017</div>
+<div class="rpt-card">
+  <div class="rpt-synthesis-item" style="border-left:2px solid #4caf6b">
+    <div class="rpt-synthesis-head" style="color:#4caf6b">Verbal intelligence — the central, defining strength</div>
+    <div class="rpt-synthesis-body">Similarities (abstract verbal reasoning) at 98th %ile at age 5 — maintained across every subsequent evaluation. Every teacher across 10 years independently noted exceptional conversational ability, deep analytical thought, and surprising conceptual connections. Not compensatory — genuinely extraordinary.</div>
+  </div>
+  <div class="rpt-synthesis-item" style="border-left:2px solid #4caf6b;margin-top:8px">
+    <div class="rpt-synthesis-head" style="color:#4caf6b">Passion-driven hyperfocus</div>
+    <div class="rpt-synthesis-body">When topics engaged him — film, animals, history, social issues — Jack became "extremely focused," elevated entire classroom discussions, and worked without prompting. The same person who needed constant redirection produced extraordinary work when intrinsically motivated. Documented independently by a dozen observers.</div>
+  </div>
+  <div class="rpt-synthesis-item" style="border-left:2px solid #4caf6b;margin-top:8px">
+    <div class="rpt-synthesis-head" style="color:#4caf6b">Empathy and social intelligence</div>
+    <div class="rpt-synthesis-body">Dr. Prieto at age 5: "Jack's understanding of relationship dynamics is unusually evolved." Literacy teacher 2014: connections that deepened group understanding. 2017 advisors on veteran service day: "deep, thoughtful, and caring conversations." Consistently documented across all 10 years.</div>
+  </div>
+  <div class="rpt-synthesis-item" style="border-left:2px solid #50b4dc;margin-top:8px">
+    <div class="rpt-synthesis-head" style="color:#50b4dc">Reading — strong trajectory with structured support</div>
+    <div class="rpt-synthesis-body">Average comprehension in kindergarten. By 7th grade: 85th %ile nationally with extended time. Six years of Orton-Gillingham at MMFS produced meaningful remediation.</div>
+  </div>
+  <div class="rpt-synthesis-item" style="border-left:2px solid #e6b43c;margin-top:8px">
+    <div class="rpt-synthesis-head" style="color:#e6b43c">Consistent challenges — structural, not motivational</div>
+    <div class="rpt-synthesis-body">Processing speed, fine motor, visual-spatial, and sustained attention deficits present in every evaluation from age 5 to 19. Teacher observations (tardiness, walking away mid-conversation, needing redirection) are behavioral expressions of confirmed neurological patterns — documented independently by over a dozen professionals. Never a character issue.</div>
+  </div>
+  <div class="rpt-alert rpt-alert-t">★ The most striking finding: under the right conditions — untimed, topic he loves, verbal modality — Jack's performance rivals or exceeds peers with no learning challenges. The entire gap between potential and measured performance is attributable to processing speed and attentional dysregulation, not intelligence, effort, or motivation.</div>
+</div>
+
+</div>
+
 </body>
 </html>
