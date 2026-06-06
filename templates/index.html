@@ -516,19 +516,22 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
       </div>
     </div>
     <div class="game-msg" id="gameMsg">Tap START or press any arrow key</div>
-    <canvas id="gameCanvas" width="280" height="280"></canvas>
+    <canvas id="gameCanvas" width="280" height="280" onclick="if(!gRunning)gameStart();" style="cursor:pointer"></canvas>
+    <div style="display:flex;justify-content:center;margin:12px 0 6px">
+      <button class="game-btn" id="gameStartBtn" onclick="gameStart()" style="padding:10px 32px;font-size:14px;font-family:'JetBrains Mono',monospace;letter-spacing:1px;color:#7fff7f;border-color:rgba(100,220,100,.5);min-width:120px">▶ START</button>
+    </div>
     <div class="game-controls">
       <div></div>
-      <button class="game-btn" ontouchstart="gameDir(0,-1)" onclick="gameDir(0,-1)">▲</button>
+      <button class="game-btn" ontouchstart="e=>{e.preventDefault();gameDir(0,-1)}" onclick="gameDir(0,-1)">▲</button>
       <div></div>
-      <button class="game-btn" ontouchstart="gameDir(-1,0)" onclick="gameDir(-1,0)">◀</button>
-      <button class="game-btn" id="gameStartBtn" onclick="gameStart()">▶</button>
-      <button class="game-btn" ontouchstart="gameDir(1,0)" onclick="gameDir(1,0)">▶</button>
+      <button class="game-btn" ontouchstart="e=>{e.preventDefault();gameDir(-1,0)}" onclick="gameDir(-1,0)">◀</button>
+      <div style="background:var(--bg3);border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace">D-PAD</div>
+      <button class="game-btn" ontouchstart="e=>{e.preventDefault();gameDir(1,0)}" onclick="gameDir(1,0)">▶</button>
       <div></div>
-      <button class="game-btn" ontouchstart="gameDir(0,1)" onclick="gameDir(0,1)">▼</button>
+      <button class="game-btn" ontouchstart="e=>{e.preventDefault();gameDir(0,1)}" onclick="gameDir(0,1)">▼</button>
       <div></div>
     </div>
-    <div class="game-hint">Arrow keys or on-screen buttons · eat all dots to advance · avoid ghosts!</div>
+    <div class="game-hint">Arrow keys or on-screen D-pad · eat all dots to advance · avoid ghosts!</div>
   </div>
 </div>
 <div class="view" id="view-hypothesis">
@@ -1396,7 +1399,8 @@ function gameStart(){
   gRunning=true; gGameOver=false;
   updateHUD();
   document.getElementById('gameMsg').textContent='';
-  document.getElementById('gameStartBtn').textContent='■';
+  document.getElementById('gameStartBtn').textContent='■ PAUSE';
+  document.getElementById('gameStartBtn').style.color='#ff9060';
   document.getElementById('gameStartBtn').onclick=gamePause;
   const speed = Math.max(120, 200 - (gLevel-1)*15);
   gLoop=setInterval(gameTick, speed);
@@ -1515,7 +1519,8 @@ function endGame(){
     document.getElementById('gameMsg').textContent='GAME OVER · Tap ▶ to restart';
   }
   gLevel=1;
-  document.getElementById('gameStartBtn').textContent='▶';
+  document.getElementById('gameStartBtn').textContent='▶ START';
+  document.getElementById('gameStartBtn').style.color='#7fff7f';
   document.getElementById('gameStartBtn').onclick=gameStart;
   drawGame();
 }
@@ -1524,11 +1529,13 @@ function gamePause(){
   if(!gRunning) return;
   clearInterval(gLoop); gRunning=false;
   document.getElementById('gameMsg').textContent='PAUSED';
-  document.getElementById('gameStartBtn').textContent='▶';
+  document.getElementById('gameStartBtn').textContent='▶ RESUME';
+  document.getElementById('gameStartBtn').style.color='#7fff7f';
   document.getElementById('gameStartBtn').onclick=()=>{
     gRunning=true;
     document.getElementById('gameMsg').textContent='';
-    document.getElementById('gameStartBtn').textContent='■';
+    document.getElementById('gameStartBtn').textContent='■ PAUSE';
+    document.getElementById('gameStartBtn').style.color='#ff9060';
     document.getElementById('gameStartBtn').onclick=gamePause;
     const speed=Math.max(120,200-(gLevel-1)*15);
     gLoop=setInterval(gameTick,speed);
