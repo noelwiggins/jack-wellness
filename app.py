@@ -1,4 +1,10 @@
 import os
+from datetime import datetime
+try:
+    import pytz
+    HAS_PYTZ = True
+except ImportError:
+    HAS_PYTZ = False
 import json
 import psycopg
 from psycopg.rows import dict_row
@@ -425,6 +431,38 @@ def get_chart_mood():
 def get_version():
     return jsonify({"version": PROTOCOL_VERSION, "notes": PROTOCOL_NOTES})
 
+def get_brooklyn_time():
+    """Get current Brooklyn time as a readable string."""
+    try:
+        if HAS_PYTZ:
+            tz = pytz.timezone('America/New_York')
+            now = datetime.now(tz)
+        else:
+            now = datetime.utcnow()
+        return now.strftime('%A, %B %-d, %Y at %-I:%M %p') + (' ET' if HAS_PYTZ else ' UTC')
+    except Exception:
+        return datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
+
+def get_brooklyn_weather():
+    """Fetch current Brooklyn weather from OpenWeatherMap."""
+    try:
+        import urllib.request as _ur, json as _j
+        api_key = os.environ.get('OPENWEATHER_API_KEY', '')
+        if not api_key:
+            return None
+        url = f'https://api.openweathermap.org/data/2.5/weather?q=Brooklyn,US&appid={api_key}&units=imperial'
+        with _ur.urlopen(url, timeout=5) as r:
+            d = _j.loads(r.read())
+        temp = round(d['main']['temp'])
+        feels = round(d['main']['feels_like'])
+        desc = d['weather'][0]['description'].capitalize()
+        humidity = d['main']['humidity']
+        wind = round(d['wind']['speed'])
+        return f"{temp}°F (feels like {feels}°F), {desc}, {humidity}% humidity, wind {wind} mph"
+    except Exception as e:
+        print("Weather error:", e)
+        return None
+
 @app.route('/api/ask', methods=['POST'])
 def ask_claude():
     try:
@@ -433,14 +471,25 @@ def ask_claude():
         messages = data.get('messages', [])
         context = data.get('context', '')
 
-        # Build messages with system context
         if not messages:
             return jsonify({'error': 'No messages provided'}), 400
+
+        # Build enriched system prompt with live time and weather
+        current_time = get_brooklyn_time()
+        weather = get_brooklyn_weather()
+
+        live_context = f"""LIVE CONTEXT (updated each request):
+Current time in Brooklyn: {current_time}
+Current Brooklyn weather: {weather if weather else 'unavailable (OpenWeather API key not set)'}
+
+"""
+        full_system = live_context + context
 
         payload = _json.dumps({
             "model": "claude-sonnet-4-20250514",
             "max_tokens": 1024,
-            "system": context,
+            "system": full_system,
+            "tools": [{"type": "web_search_20250305", "name": "web_search"}],
             "messages": messages
         }).encode()
 
@@ -453,19 +502,20 @@ def ask_claude():
                 'x-api-key': os.environ.get('ANTHROPIC_API_KEY', '')
             }
         )
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=45) as resp:
             result = _json.loads(resp.read())
 
+        # Extract text from response (web search may return multiple blocks)
         reply = ''
         for block in result.get('content', []):
             if block.get('type') == 'text':
                 reply += block.get('text', '')
 
-        return jsonify({'reply': reply.strip()})
+        return jsonify({'reply': reply.strip() or 'No response received.'})
 
     except Exception as e:
         print("Ask Claude error:", e)
-        return jsonify({'error': str(e), 'reply': 'Sorry, I could not connect to Claude. Please try again.'}), 500
+        return jsonify({'error': str(e), 'reply': 'Sorry, I could not connect to Claude. Please try again.'})
 
 @app.route('/api/bike-news', methods=['GET'])
 def bike_news():
