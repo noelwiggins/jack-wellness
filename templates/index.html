@@ -27,14 +27,36 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .nav{position:sticky;top:0;z-index:100;background:rgba(13,20,16,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;height:56px}
 .nav-logo{font-family:'Playfair Display',serif;font-style:italic;font-size:19px;color:var(--green);flex:1;letter-spacing:-.3px}
 .nav-ver{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);margin-right:8px;letter-spacing:.5px}
-.ai-bar{background:linear-gradient(135deg,#1a0a2e 0%,#2d1b69 60%,#3730a3 100%);padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(99,102,241,.3)}
+.ai-bar{background:linear-gradient(135deg,#1a0a2e 0%,#2d1b69 60%,#3730a3 100%);padding:10px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(99,102,241,.3)}
 .ai-bar-label{color:#a5b4fc;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;flex-shrink:0;font-family:'JetBrains Mono',monospace}
 .ai-bar-input{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:7px 14px;color:white;font-size:12px;outline:none;transition:all .2s;font-family:-apple-system,sans-serif}
 .ai-bar-input::placeholder{color:rgba(255,255,255,.35)}
 .ai-bar-input:focus{background:rgba(255,255,255,.12);border-color:rgba(165,180,252,.5)}
-.ai-bar-btn{background:#6366f1;color:white;border:none;border-radius:16px;padding:7px 16px;font-size:11px;font-weight:700;cursor:pointer;transition:background .2s;white-space:nowrap;flex-shrink:0;font-family:'JetBrains Mono',monospace;letter-spacing:.3px}
+.ai-bar-btn{background:#6366f1;color:white;border:none;border-radius:16px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;transition:background .2s;white-space:nowrap;flex-shrink:0;font-family:'JetBrains Mono',monospace;letter-spacing:.3px}
 .ai-bar-btn:hover{background:#4f46e5}
 .ai-bar-btn:disabled{background:#6366f155;cursor:not-allowed}
+.ai-mic-btn{background:none;border:1px solid rgba(165,180,252,.3);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s;font-size:16px;color:#a5b4fc;padding:0}
+.ai-mic-btn:hover{background:rgba(99,102,241,.2);border-color:rgba(165,180,252,.6)}
+.ai-mic-btn.listening{background:rgba(239,68,68,.15);border-color:#ef4444;color:#ef4444;animation:micPulse 1s ease-in-out infinite}
+@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+.ai-chat-btn{background:none;border:1px solid rgba(165,180,252,.3);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:15px;color:#a5b4fc;padding:0;transition:all .2s}
+.ai-chat-btn:hover{background:rgba(99,102,241,.2);border-color:rgba(165,180,252,.6)}
+.ai-chat-btn.active{background:rgba(99,102,241,.25);border-color:#a5b4fc;color:#fff}
+.ai-response-panel{max-height:0;overflow:hidden;transition:max-height .3s ease;background:#0f0a1e}
+.ai-response-panel.open{max-height:420px;overflow-y:auto}
+.ai-chat-history{padding:10px 14px;display:flex;flex-direction:column;gap:8px}
+.ai-chat-msg-user{align-self:flex-end;background:rgba(99,102,241,.25);border:1px solid rgba(99,102,241,.4);border-radius:14px 14px 2px 14px;padding:8px 12px;font-size:12px;color:#e0e7ff;max-width:85%;line-height:1.4}
+.ai-chat-msg-claude{align-self:flex-start;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:2px 14px 14px 14px;padding:8px 12px;font-size:12px;color:#c7d2fe;max-width:92%;line-height:1.6}
+.ai-chat-msg-claude strong{color:#e0e7ff}
+.ai-typing-dots{display:flex;gap:4px;padding:4px 0;align-items:center}
+.ai-typing-dots span{width:6px;height:6px;border-radius:50%;background:#6366f1;animation:aiDot 1.2s ease-in-out infinite}
+.ai-typing-dots span:nth-child(2){animation-delay:.2s}
+.ai-typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes aiDot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+.ai-clear-btn{background:none;border:none;color:rgba(165,180,252,.4);font-size:10px;font-family:'JetBrains Mono',monospace;cursor:pointer;padding:4px 14px;display:block;width:100%;text-align:right}
+.ai-clear-btn:hover{color:#a5b4fc}
+.ai-voice-status{font-size:10px;color:#ef4444;font-family:'JetBrains Mono',monospace;padding:4px 14px;display:none}
+.ai-voice-status.show{display:block}
 .ai-response-panel{background:linear-gradient(135deg,#120820 0%,#1e1040 100%);border-bottom:1px solid rgba(99,102,241,.25);padding:0 16px;max-height:0;overflow:hidden;transition:max-height .35s ease,padding .35s ease}
 .ai-response-panel.open{max-height:400px;padding:14px 16px;overflow-y:auto}
 .ai-response-text{color:#e0e7ff;font-size:12px;line-height:1.7;white-space:pre-wrap}
@@ -339,14 +361,18 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 </head>
 <body>
 <div class="ai-bar">
-  <span class="ai-bar-label">✦ Ask Claude</span>
+  <span class="ai-bar-label">✦ ASK</span>
+  <button class="ai-mic-btn" id="ai-mic-btn" onclick="toggleMic()" title="Voice input">🎤</button>
   <input class="ai-bar-input" id="ai-input" type="text"
-    placeholder="Ask about your protocol, supplements, genetics, or why something is in your plan…"
+    placeholder="Ask about your protocol, genetics, TMS, labs..."
     onkeydown="if(event.key==='Enter') askClaude()">
+  <button class="ai-chat-btn" id="ai-chat-toggle" onclick="toggleChat()" title="Show chat history">💬</button>
   <button class="ai-bar-btn" id="ai-btn" onclick="askClaude()">ASK</button>
 </div>
+<div class="ai-voice-status" id="aiVoiceStatus">🔴 Listening... tap mic to stop</div>
 <div class="ai-response-panel" id="ai-response">
-  <div class="ai-response-text" id="ai-response-text"></div>
+  <button class="ai-clear-btn" onclick="clearChat()">✕ clear chat</button>
+  <div class="ai-chat-history" id="ai-chat-history"></div>
 </div>
 <div class="ai-chips-row">
   <span class="ai-chip" onclick="chipAsk(this)">Why do I take Enlyte?</span>
@@ -1903,45 +1929,169 @@ function chipAsk(el) {
   document.getElementById('ai-input').value = el.textContent;
   askClaude();
 }
+// Chat history for multi-turn conversation
+let aiChatHistory = [];
+let aiChatVisible = false;
+let aiListening = false;
+let aiRecognition = null;
+
+function toggleChat() {
+  const panel = document.getElementById('ai-response');
+  const btn = document.getElementById('ai-chat-toggle');
+  aiChatVisible = !aiChatVisible;
+  if (aiChatVisible) {
+    panel.classList.add('open');
+    btn.classList.add('active');
+  } else {
+    panel.classList.remove('open');
+    btn.classList.remove('active');
+  }
+}
+
+function clearChat() {
+  aiChatHistory = [];
+  document.getElementById('ai-chat-history').innerHTML = '';
+  document.getElementById('ai-response').classList.remove('open');
+  document.getElementById('ai-chat-toggle').classList.remove('active');
+  aiChatVisible = false;
+}
+
+function addChatBubble(role, text, isTyping) {
+  const history = document.getElementById('ai-chat-history');
+  const div = document.createElement('div');
+  div.className = role === 'user' ? 'ai-chat-msg-user' : 'ai-chat-msg-claude';
+  if (isTyping) {
+    div.id = 'ai-typing-bubble';
+    div.innerHTML = '<div class="ai-typing-dots"><span></span><span></span><span></span></div>';
+  } else {
+    div.innerHTML = text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+  }
+  history.appendChild(div);
+  history.scrollTop = history.scrollHeight;
+  return div;
+}
+
+// Microphone / Speech Recognition
+function toggleMic() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    document.getElementById('aiVoiceStatus').textContent = '⚠ Voice not supported in this browser. Try Chrome.';
+    document.getElementById('aiVoiceStatus').classList.add('show');
+    setTimeout(() => document.getElementById('aiVoiceStatus').classList.remove('show'), 3000);
+    return;
+  }
+  if (aiListening) {
+    stopMic();
+    return;
+  }
+  startMic();
+}
+
+function startMic() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  aiRecognition = new SpeechRecognition();
+  aiRecognition.continuous = false;
+  aiRecognition.interimResults = true;
+  aiRecognition.lang = 'en-US';
+
+  aiRecognition.onstart = () => {
+    aiListening = true;
+    document.getElementById('ai-mic-btn').classList.add('listening');
+    document.getElementById('ai-mic-btn').textContent = '🔴';
+    document.getElementById('aiVoiceStatus').classList.add('show');
+  };
+
+  aiRecognition.onresult = (e) => {
+    const transcript = Array.from(e.results)
+      .map(r => r[0].transcript).join('');
+    document.getElementById('ai-input').value = transcript;
+    if (e.results[0].isFinal) {
+      stopMic();
+      askClaude();
+    }
+  };
+
+  aiRecognition.onerror = (e) => {
+    stopMic();
+    document.getElementById('aiVoiceStatus').textContent = '⚠ ' + e.error + ' — try again';
+    document.getElementById('aiVoiceStatus').classList.add('show');
+    setTimeout(() => document.getElementById('aiVoiceStatus').classList.remove('show'), 3000);
+  };
+
+  aiRecognition.onend = () => { stopMic(); };
+  aiRecognition.start();
+}
+
+function stopMic() {
+  aiListening = false;
+  if (aiRecognition) { try { aiRecognition.stop(); } catch(e){} }
+  document.getElementById('ai-mic-btn').classList.remove('listening');
+  document.getElementById('ai-mic-btn').textContent = '🎤';
+  document.getElementById('aiVoiceStatus').classList.remove('show');
+}
+
 async function askClaude() {
   const input = document.getElementById('ai-input');
   const btn = document.getElementById('ai-btn');
   const panel = document.getElementById('ai-response');
-  const textEl = document.getElementById('ai-response-text');
   const q = input.value.trim();
   if (!q) return;
-  btn.disabled = true; btn.textContent = '...';
+
+  // Show chat panel
   panel.classList.add('open');
-  textEl.innerHTML = '<span style="color:#a5b4fc"><span class="ai-dots"><span></span><span></span><span></span></span> Checking your protocol…</span>';
+  document.getElementById('ai-chat-toggle').classList.add('active');
+  aiChatVisible = true;
+
+  btn.disabled = true; btn.textContent = '...';
+  input.value = '';
+
+  // Add user message
+  addChatBubble('user', q);
+  aiChatHistory.push({role: 'user', content: q});
+
+  // Typing indicator
+  addChatBubble('assistant', '', true);
+
   try {
     const ctx = await getJackContext();
-    const sys = `You are a knowledgeable health assistant helping Jack Wiggins understand his personalized wellness protocol.
-You have access to his complete clinical context and daily protocol below.
-Rules:
-- Be direct and specific. Address him as Jack.
-- Explain the science behind protocol items in plain language.
-- His genetics (MTHFR C677T homozygous, COMT Val/Val) are central to everything — always tie explanations back to them.
-- Never diagnose or prescribe — help him understand his existing protocol.
-- Keep responses focused, under 350 words unless detail is needed.
-- Use his protocol data when answering — be specific, not generic.
+    const sys = `You are a knowledgeable health assistant helping Jack Wiggins understand his personalized wellness protocol. You have access to his complete clinical context below.
+Rules: Be direct and specific. Address him as Jack. Tie explanations to his genetics (MTHFR C677T homozygous, COMT Val/Val). Never diagnose or prescribe. Keep responses focused under 300 words unless detail is essential. You remember the conversation history — refer back to earlier messages when relevant.
 
 JACK'S CLINICAL CONTEXT:
 ${ctx}`;
+
+    // Keep last 10 messages for context
+    const messages = aiChatHistory.slice(-10);
+
     const resp = await fetch('/api/ask', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        messages: [{role: 'user', content: q}],
-        context: sys
-      })
+      body: JSON.stringify({ messages, context: sys })
     });
     const data = await resp.json();
     const answer = data.reply || 'Could not get a response. Please try again.';
-    textEl.innerHTML = answer
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\n/g, '<br>');
+
+    // Replace typing indicator with real response
+    const typing = document.getElementById('ai-typing-bubble');
+    if (typing) {
+      typing.removeAttribute('id');
+      typing.innerHTML = answer
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+      document.getElementById('ai-chat-history').scrollTop = 99999;
+    }
+
+    aiChatHistory.push({role: 'assistant', content: answer});
+    // Keep history trimmed
+    if (aiChatHistory.length > 20) aiChatHistory = aiChatHistory.slice(-20);
+
   } catch(e) {
-    textEl.innerHTML = '<span style="color:#fca5a5">Error — please try again.</span>';
+    const typing = document.getElementById('ai-typing-bubble');
+    if (typing) {
+      typing.removeAttribute('id');
+      typing.innerHTML = '<span style="color:#fca5a5">Error — please try again.</span>';
+    }
   }
   btn.disabled = false; btn.textContent = 'ASK';
 }
