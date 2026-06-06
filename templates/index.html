@@ -1475,6 +1475,9 @@ async function loadBikeNews(){
   }
 }
 
+// Keep Railway server warm — ping every 4 min to prevent cold starts
+setInterval(()=>fetch('/api/ping').catch(()=>{}), 240000);
+
 init();
 
 // ── AI QUERY BOX ──────────────────────────────────────────────────────────

@@ -443,6 +443,11 @@ def get_brooklyn_time():
     except Exception:
         return datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
 
+
+@app.route('/api/ping', methods=['GET'])
+def ping():
+    return jsonify({"ok": True})
+
 @app.route('/api/ask', methods=['POST'])
 def ask_claude():
     try:
@@ -454,24 +459,35 @@ def ask_claude():
         if not messages:
             return jsonify({'error': 'No messages provided'}), 400
 
-        # Build enriched system prompt with live time
-        # Weather is handled by web search tool automatically
+        # Detect if question needs real-time data
+        last_msg = messages[-1].get('content', '').lower()
+        needs_search = any(kw in last_msg for kw in [
+            'weather', 'temperature', 'forecast', 'rain', 'snow', 'today', 'tonight',
+            'news', 'latest', 'current', 'recent', 'right now', 'this week',
+            'research', 'study', 'published', 'new treatment', 'clinical trial',
+            'nyc', 'brooklyn', 'accident', 'alert', 'open', 'closed', 'hours'
+        ])
+
         current_time = get_brooklyn_time()
-
-        live_context = f"""LIVE CONTEXT (updated each request):
-Current time in Brooklyn: {current_time}
-Note: You have web search available — use it for current weather, news, and any real-time information.
-
-"""
+        live_context = f"Current time in Brooklyn: {current_time}\n\n"
         full_system = live_context + context
 
-        payload = _json.dumps({
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 1024,
+        # Use haiku for simple questions, sonnet for complex/search
+        model = "claude-haiku-4-5" if (not needs_search and len(last_msg) < 80) else "claude-sonnet-4-20250514"
+
+        payload_dict = {
+            "model": model,
+            "max_tokens": 800,
             "system": full_system,
-            "tools": [{"type": "web_search_20250305", "name": "web_search"}],
             "messages": messages
-        }).encode()
+        }
+
+        # Only add web search when needed
+        if needs_search:
+            payload_dict["tools"] = [{"type": "web_search_20250305", "name": "web_search"}]
+            payload_dict["max_tokens"] = 1024
+
+        payload = _json.dumps(payload_dict).encode()
 
         req = urllib.request.Request(
             'https://api.anthropic.com/v1/messages',
@@ -485,13 +501,16 @@ Note: You have web search available — use it for current weather, news, and an
         with urllib.request.urlopen(req, timeout=45) as resp:
             result = _json.loads(resp.read())
 
-        # Extract text from response (web search may return multiple blocks)
         reply = ''
         for block in result.get('content', []):
             if block.get('type') == 'text':
                 reply += block.get('text', '')
 
-        return jsonify({'reply': reply.strip() or 'No response received.'})
+        return jsonify({
+            'reply': reply.strip() or 'No response received.',
+            'model': model,
+            'searched': needs_search
+        })
 
     except Exception as e:
         print("Ask Claude error:", e)
