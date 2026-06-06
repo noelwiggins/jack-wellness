@@ -528,7 +528,7 @@ def api_claude_context():
     # Build protocol summary from SECTIONS
     protocol_lines = []
     for section in SECTIONS:
-        protocol_lines.append(f"\n[{section['label']}]")
+        protocol_lines.append(f"\n[{section.get('title', section.get('id',''))}]")
         for item in section.get('items', []):
             tag = item.get('tagLabel', '')
             note = item.get('note', '')[:150]
