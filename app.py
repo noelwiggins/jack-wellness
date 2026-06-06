@@ -9,11 +9,24 @@ import json
 import psycopg
 from psycopg.rows import dict_row
 from datetime import datetime, date, timedelta
-from flask import Flask, request, jsonify, render_template
+from functools import wraps
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from flask_cors import CORS
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)
+app.secret_key = os.environ.get('SECRET_KEY', 'jw-secret-2026-x9k')
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 30  # 30 days
+
+SITE_PASSWORD = os.environ.get('SITE_PASSWORD', '5565')
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('authenticated'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated
 
 # ── AUTH ──────────────────────────────────────────────────
 
@@ -221,6 +234,7 @@ except Exception as e:
     print("DB init warning:", e)
 
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
 
@@ -564,6 +578,23 @@ def bike_news():
             {'title': 'Williamsburg Kent Ave: DOT adds plastic bollards after truck-cyclist near-miss series', 'meta': 'Transportation Alternatives 2025'},
             {'title': 'NYC e-bike registration law takes effect — unregistered throttle e-bikes subject to $500 fine', 'meta': 'NYC Local Law 2025'},
         ], 'cached': True})
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        pin = request.form.get('pin', '').strip()
+        if pin == SITE_PASSWORD:
+            session.permanent = True
+            session['authenticated'] = True
+            return redirect(url_for('index'))
+        error = 'Incorrect PIN'
+    return render_template('login.html', error=error)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 @app.route('/health', methods=['GET'])
 def health():

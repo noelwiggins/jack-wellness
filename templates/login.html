@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Jack's Protocol — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a130a;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace}
+.wrap{width:100%;max-width:340px;padding:20px}
+.logo{font-family:'Playfair Display',serif;font-size:28px;color:#50c878;text-align:center;margin-bottom:6px;font-style:italic}
+.sub{font-size:11px;color:#4a6b4a;text-align:center;letter-spacing:1px;margin-bottom:32px}
+.card{background:#0f1f0f;border:1px solid #1e3a1e;border-radius:16px;padding:28px}
+.label{font-size:11px;color:#4a7a4a;letter-spacing:1px;margin-bottom:8px}
+.pin-dots{display:flex;justify-content:center;gap:14px;margin-bottom:24px;height:20px;align-items:center}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:#1e3a1e;border:2px solid #2a5a2a;transition:all .2s}
+.pin-dot.filled{background:#50c878;border-color:#50c878;box-shadow:0 0 8px #50c87888}
+.numpad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.num-btn{background:#0f1f0f;border:1px solid #1e3a1e;border-radius:10px;padding:16px;font-size:20px;font-family:'JetBrains Mono',monospace;color:#7ab87a;cursor:pointer;transition:all .15s;user-select:none;-webkit-user-select:none}
+.num-btn:active,.num-btn:hover{background:#1a3a1a;border-color:#50c878;color:#a0ffa0}
+.num-btn.del{font-size:16px;color:#4a7a4a}
+.num-btn.enter{background:rgba(80,200,120,.1);border-color:rgba(80,200,120,.4);color:#50c878;font-size:13px;letter-spacing:1px}
+.num-btn.enter:active{background:rgba(80,200,120,.2)}
+.error{color:#e07070;font-size:11px;text-align:center;margin-top:14px;min-height:16px;letter-spacing:.5px}
+.shake{animation:shake .4s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">Jack's Protocol</div>
+  <div class="sub">PERSONAL HEALTH DASHBOARD</div>
+  <div class="card">
+    <div class="label">ENTER PIN</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    {% if error %}
+    <div class="error" id="errMsg">{{ error }}</div>
+    {% else %}
+    <div class="error" id="errMsg"></div>
+    {% endif %}
+    <form id="pinForm" method="POST" action="/login" style="display:none">
+      <input type="hidden" name="pin" id="pinInput">
+    </form>
+    <div class="numpad">
+      <button class="num-btn" onclick="addPin('1')">1</button>
+      <button class="num-btn" onclick="addPin('2')">2</button>
+      <button class="num-btn" onclick="addPin('3')">3</button>
+      <button class="num-btn" onclick="addPin('4')">4</button>
+      <button class="num-btn" onclick="addPin('5')">5</button>
+      <button class="num-btn" onclick="addPin('6')">6</button>
+      <button class="num-btn" onclick="addPin('7')">7</button>
+      <button class="num-btn" onclick="addPin('8')">8</button>
+      <button class="num-btn" onclick="addPin('9')">9</button>
+      <button class="num-btn del" onclick="delPin()">⌫</button>
+      <button class="num-btn" onclick="addPin('0')">0</button>
+      <button class="num-btn enter" onclick="submitPin()">ENTER</button>
+    </div>
+  </div>
+</div>
+<script>
+let pin = '';
+function addPin(d) {
+  if (pin.length >= 4) return;
+  pin += d;
+  updateDots();
+  if (pin.length === 4) setTimeout(submitPin, 200);
+}
+function delPin() {
+  pin = pin.slice(0, -1);
+  updateDots();
+  document.getElementById('errMsg').textContent = '';
+}
+function updateDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById('d' + i).classList.toggle('filled', i < pin.length);
+  }
+}
+function submitPin() {
+  if (!pin) return;
+  document.getElementById('pinInput').value = pin;
+  document.getElementById('pinForm').submit();
+}
+// Keyboard support
+document.addEventListener('keydown', e => {
+  if (e.key >= '0' && e.key <= '9') addPin(e.key);
+  else if (e.key === 'Backspace') delPin();
+  else if (e.key === 'Enter') submitPin();
+});
+// Shake on error
+{% if error %}
+document.querySelector('.pin-dots').classList.add('shake');
+{% endif %}
+</script>
+</body>
+</html>
