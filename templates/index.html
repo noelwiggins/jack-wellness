@@ -1515,18 +1515,16 @@ Rules:
 
 JACK'S CLINICAL CONTEXT:
 ${ctx}`;
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('/api/ask', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: sys,
-        messages: [{role: 'user', content: q}]
+        messages: [{role: 'user', content: q}],
+        context: sys
       })
     });
     const data = await resp.json();
-    const answer = data.content?.[0]?.text || 'Could not get a response. Please try again.';
+    const answer = data.reply || 'Could not get a response. Please try again.';
     textEl.innerHTML = answer
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\n/g, '<br>');
