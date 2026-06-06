@@ -221,6 +221,33 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .labs-ref-line{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:6px;display:flex;gap:12px;flex-wrap:wrap}
 .labs-ref-line span{display:inline-flex;align-items:center;gap:4px}
 .labs-insight{font-size:11px;color:var(--text2);background:var(--bg3);border-radius:6px;padding:8px 10px;margin-top:8px;line-height:1.5;border-left:2px solid var(--green)}
+.ask-nav-tab{color:#60d0c0 !important;border:1px solid rgba(80,200,180,.3) !important}
+.ask-nav-tab.active{background:rgba(80,200,180,.12) !important;color:#80e8d8 !important;border-color:rgba(80,200,180,.5) !important}
+.ask-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px}
+.ask-header{font-family:'Playfair Display',serif;font-size:15px;color:#60d0c0;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.ask-subhead{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-bottom:14px;line-height:1.5}
+.ask-textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text1);font-size:13px;font-family:'JetBrains Mono',monospace;resize:none;min-height:90px;box-sizing:border-box;outline:none;line-height:1.5}
+.ask-textarea:focus{border-color:rgba(80,200,180,.4)}
+.ask-send-btn{width:100%;margin-top:10px;padding:12px;background:rgba(80,200,180,.12);border:1px solid rgba(80,200,180,.4);border-radius:10px;color:#60d0c0;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.5px;transition:all .2s}
+.ask-send-btn:hover{background:rgba(80,200,180,.2)}
+.ask-send-btn:disabled{opacity:.4;cursor:not-allowed}
+.ask-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.ask-chip{font-size:10px;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:20px;border:1px solid rgba(80,200,180,.25);color:#60d0c0;background:rgba(80,200,180,.06);cursor:pointer;transition:all .15s;line-height:1.3}
+.ask-chip:hover{background:rgba(80,200,180,.14);border-color:rgba(80,200,180,.5)}
+.ask-messages{margin-top:14px}
+.ask-msg{margin-bottom:12px;animation:fadeIn .3s ease}
+.ask-msg-user{background:rgba(80,200,180,.08);border:1px solid rgba(80,200,180,.2);border-radius:10px 10px 2px 10px;padding:10px 12px;font-size:12px;color:var(--text1);line-height:1.5;text-align:right}
+.ask-msg-claude{background:var(--bg3);border:1px solid var(--border);border-radius:2px 10px 10px 10px;padding:12px;font-size:12px;color:var(--text2);line-height:1.6}
+.ask-msg-claude p{margin:0 0 8px}
+.ask-msg-claude p:last-child{margin:0}
+.ask-msg-claude strong{color:var(--text1)}
+.ask-msg-label{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--text3);margin-bottom:4px;letter-spacing:.5px}
+.ask-typing{display:flex;gap:4px;align-items:center;padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:2px 10px 10px 10px}
+.ask-typing span{width:6px;height:6px;background:var(--green);border-radius:50%;animation:askPulse 1.2s ease-in-out infinite}
+.ask-typing span:nth-child(2){animation-delay:.2s}
+.ask-typing span:nth-child(3){animation-delay:.4s}
+@keyframes askPulse{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 #bikeMap{height:260px;border-radius:10px;overflow:hidden;margin-bottom:6px;border:1px solid var(--border)}
 .sh-mood{background:linear-gradient(90deg,rgba(255,215,0,.05),transparent);border-bottom:1px solid var(--border)}
 .check-item{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;cursor:pointer;transition:background .15s;border-bottom:1px solid rgba(42,61,44,.5);background:var(--card);position:relative}
@@ -325,6 +352,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
     <button class="nav-tab" onclick="switchView('stats',this)">STATS</button>
     <button class="nav-tab" onclick="switchView('history',this)">LOG</button>
     <button class="nav-tab bike-nav-tab" onclick="switchView('bike',this);initBikeView()">🚲 RIDE</button>
+    <button class="nav-tab ask-nav-tab" onclick="switchView('ask',this);initAskView()">💬 ASK</button>
     <button class="nav-tab hypo-nav-tab" onclick="switchView('hypothesis',this)">🧬 WHY</button>
     <button class="nav-tab labs-nav-tab" onclick="switchView('labs',this);initLabsView()">📊 LABS</button>
     <button class="nav-tab rpt-nav-tab" onclick="switchView('reports',this)">📋 REPORTS</button>
@@ -426,6 +454,34 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
   </div>
 </div>
 
+<div class="view" id="view-ask">
+
+  <div class="ask-box">
+    <div class="ask-header">💬 Ask About Your Protocol</div>
+    <div class="ask-subhead">Ask anything about your labs, genetics, supplements, TMS, symptoms, or daily protocol. Claude knows your full clinical picture — MTHFR C677T, COMT Val/Val, homocysteine history, Enlyte, guanfacine, TMS course, and all lab history back to 2010.</div>
+
+    <div class="ask-chips" id="askChips">
+      <div class="ask-chip" onclick="setAskChip(this)">Why do I need Enlyte?</div>
+      <div class="ask-chip" onclick="setAskChip(this)">What does COMT Val/Val mean for me?</div>
+      <div class="ask-chip" onclick="setAskChip(this)">How does TMS help my OCD?</div>
+      <div class="ask-chip" onclick="setAskChip(this)">Why is my homocysteine elevated?</div>
+      <div class="ask-chip" onclick="setAskChip(this)">What is PANDAS and do I have it?</div>
+      <div class="ask-chip" onclick="setAskChip(this)">Why avoid folic acid?</div>
+      <div class="ask-chip" onclick="setAskChip(this)">What should I eat today?</div>
+      <div class="ask-chip" onclick="setAskChip(this)">Is cold plunge safe with guanfacine?</div>
+      <div class="ask-chip" onclick="setAskChip(this)">What blood tests do I still need?</div>
+      <div class="ask-chip" onclick="setAskChip(this)">Why is my HDL low?</div>
+      <div class="ask-chip" onclick="setAskChip(this)">What should I tell my TMS doctor?</div>
+      <div class="ask-chip" onclick="setAskChip(this)">How do sauna and cold plunge help my brain?</div>
+    </div>
+
+    <textarea class="ask-textarea" id="askInput" placeholder="Ask anything about your protocol, labs, symptoms, or treatment..." rows="3"></textarea>
+    <button class="ask-send-btn" id="askSendBtn" onclick="sendAskMessage()">⟶ SEND</button>
+  </div>
+
+  <div class="ask-messages" id="askMessages"></div>
+
+</div>
 <div class="view" id="view-hypothesis">
 
   <div class="hypo-card">
@@ -1066,6 +1122,154 @@ let toastTimer;
 function showToast(msg){const ex=document.querySelector('.toast');if(ex)ex.remove();const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),300);},2800);}
 function launchConfetti(){const c=['#4CAF6B','#E8A84A','#5BA8D8','#E05050','#FFD700'];for(let i=0;i<25;i++){const p=document.createElement('div');p.className='confetti-piece';p.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${c[Math.floor(Math.random()*c.length)]};transform:rotate(${Math.random()*360}deg);animation-duration:${1.4+Math.random()}s;animation-delay:${Math.random()*.4}s;`;document.body.appendChild(p);setTimeout(()=>p.remove(),2200);}}
 
+
+
+// ── ASK CLAUDE ────────────────────────────────────────────
+let askHistory = [];
+let askInit = false;
+
+const JACK_CONTEXT = `You are a knowledgeable health assistant for Jack Wiggins, age 25, Brooklyn NY. You have full knowledge of his clinical picture. Answer concisely and specifically — never give generic advice when you can give Jack-specific guidance.
+
+KEY FACTS:
+- MTHFR C677T HOMOZYGOUS (T/T) — enzyme activity ~25% normal. Most critical finding.
+- COMT Val/Val (G/G) — fast dopamine clearance from prefrontal cortex. Directly drives OCD.
+- SLC6A4 L(A)/S — intermediate SSRI response. SSRIs less likely to work.
+- CYP2C19 *1/*2, CYP2C9 *1/*2 — intermediate metabolizers for many meds.
+- CYP3A4/5 fast metabolizer — guanfacine cleared faster than normal.
+- Homocysteine: 22.4 µmol/L (2020) → 17 µmol/L (May 2026) — persistently elevated.
+- HDL: 46 (age 12) → 34 (age 25) — declining. LDL: 57 → 102.
+- Vitamin D: 30 (age 12), 27.1 (age 19) — chronically insufficient.
+- Serum B12 elevated without supplementation at ages 13 and 20 — MTHFR conversion failure.
+- Total IgE elevated. Dust mite allergy Class IV (age 9), Class III (age 20).
+- ASO 179 IU/mL at age 13 (ref <150) — possible PANDAS/autoimmune OCD component.
+- TSH consistently mid-to-high (3.84 age 12, 2.55 age 13, 3.20 age 24) — full thyroid panel never done.
+- Testosterone 352 ng/dL at age 19 — low-normal, not rechecked.
+- Volatile glucose across labs (69–113).
+
+DIAGNOSES: OCD and depression.
+
+CURRENT TREATMENT:
+- Enlyte (L-methylfolate 7.5mg + methyl-B12 + P5P + NAC) — started June 2026. Most critical intervention.
+- Guanfacine 4mg — as prescribed.
+- TMS course at Mount Sinai — early sessions. Exploring H7 deep TMS at Radial Williamsburg.
+- Occasional Adderall (pharmacogenomically supported by ADRA2A C/G).
+
+DAILY PROTOCOL:
+- Wake 9 AM anchor. Morning: water + sea salt, outdoor light, red light sauna 15 min, walk/cycle 20-30 min, cold shower.
+- Breakfast: eggs, greens, berries + Enlyte + D3/K2 5000IU + fish oil 2-3g EPA + coffee (filtered, 1 cup, done by 10:30 AM).
+- Green tea at 10:45 AM (45-60 min after Enlyte) and 2:30 PM max.
+- Magnesium glycinate 300-400mg at 9:45 PM. Melatonin 0.3mg at 9 PM (phase 2).
+- Bathhouse sauna + cold plunge 3x/week. Home red light sauna daily.
+- NO synthetic folic acid. NO seed oils. NO commercial juice. Full-fat dairy only.
+
+SMOKING: 5 cigarettes/day — suppresses HDL, raises homocysteine, reduces Enlyte effectiveness, blunts TMS cortical excitability.
+SUPPLEMENTS TO EXPLORE: TMG/betaine, L-Tyrosine, Rhodiola rosea, liposomal curcumin, low-dose naltrexone.
+KEY CLINICIANS: Dr. Nancy Shosid (NYC functional psychiatry), Dr. James Greenblatt (virtual, MTHFR/OCD expert), Dr. Rosario Trifiletti (PANDAS, NJ).
+
+Answer in clear plain language. Be specific to Jack's genetics and labs when relevant. Keep responses focused — 3-5 short paragraphs max unless the question requires more detail.`;
+
+function initAskView() {
+  if (askInit) return;
+  askInit = true;
+  document.getElementById('askInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendAskMessage();
+    }
+  });
+}
+
+function setAskChip(el) {
+  document.getElementById('askInput').value = el.textContent;
+  document.getElementById('askInput').focus();
+}
+
+function appendMessage(role, text) {
+  const container = document.getElementById('askMessages');
+  const wrap = document.createElement('div');
+  wrap.className = 'ask-msg';
+  const label = document.createElement('div');
+  label.className = 'ask-msg-label';
+  label.textContent = role === 'user' ? 'YOU' : 'CLAUDE';
+  const bubble = document.createElement('div');
+  bubble.className = role === 'user' ? 'ask-msg-user' : 'ask-msg-claude';
+  if (role === 'assistant') {
+    // Convert markdown-style formatting
+    bubble.innerHTML = text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    html = html.split('\n\n').join('</p><p>');
+    html = html.split('\n').join('<br>');
+    bubble.innerHTML = '<p>' + html + '</p>';
+  } else {
+    bubble.textContent = text;
+  }
+  wrap.appendChild(label);
+  wrap.appendChild(bubble);
+  container.appendChild(wrap);
+  container.scrollTop = container.scrollHeight;
+  return wrap;
+}
+
+function showTyping() {
+  const container = document.getElementById('askMessages');
+  const wrap = document.createElement('div');
+  wrap.className = 'ask-msg';
+  wrap.id = 'askTyping';
+  const label = document.createElement('div');
+  label.className = 'ask-msg-label';
+  label.textContent = 'CLAUDE';
+  const dots = document.createElement('div');
+  dots.className = 'ask-typing';
+  dots.innerHTML = '<span></span><span></span><span></span>';
+  wrap.appendChild(label);
+  wrap.appendChild(dots);
+  container.appendChild(wrap);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('askTyping');
+  if (el) el.remove();
+}
+
+async function sendAskMessage() {
+  const input = document.getElementById('askInput');
+  const btn = document.getElementById('askSendBtn');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  btn.disabled = true;
+  btn.textContent = '⟳ THINKING...';
+
+  appendMessage('user', text);
+  askHistory.push({ role: 'user', content: text });
+  showTyping();
+
+  try {
+    const response = await fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: askHistory, context: JACK_CONTEXT })
+    });
+    const data = await response.json();
+    removeTyping();
+    if (data.reply) {
+      appendMessage('assistant', data.reply);
+      askHistory.push({ role: 'assistant', content: data.reply });
+      // Keep history to last 10 exchanges to avoid token limits
+      if (askHistory.length > 20) askHistory = askHistory.slice(-20);
+    } else {
+      appendMessage('assistant', 'Sorry, there was an error. Please try again.');
+    }
+  } catch (e) {
+    removeTyping();
+    appendMessage('assistant', 'Connection error. Please check your network and try again.');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '⟶ SEND';
+}
 
 // ── LABS CHARTS ───────────────────────────────────────────
 let labsInit=false;

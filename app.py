@@ -489,6 +489,47 @@ def get_chart_mood():
 def get_version():
     return jsonify({"version": PROTOCOL_VERSION, "notes": PROTOCOL_NOTES})
 
+@app.route('/api/ask', methods=['POST'])
+def ask_claude():
+    try:
+        import urllib.request, json as _json
+        data = request.get_json()
+        messages = data.get('messages', [])
+        context = data.get('context', '')
+
+        # Build messages with system context
+        if not messages:
+            return jsonify({'error': 'No messages provided'}), 400
+
+        payload = _json.dumps({
+            "model": "claude-sonnet-4-20250514",
+            "max_tokens": 1024,
+            "system": context,
+            "messages": messages
+        }).encode()
+
+        req = urllib.request.Request(
+            'https://api.anthropic.com/v1/messages',
+            data=payload,
+            headers={
+                'Content-Type': 'application/json',
+                'anthropic-version': '2023-06-01'
+            }
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = _json.loads(resp.read())
+
+        reply = ''
+        for block in result.get('content', []):
+            if block.get('type') == 'text':
+                reply += block.get('text', '')
+
+        return jsonify({'reply': reply.strip()})
+
+    except Exception as e:
+        print("Ask Claude error:", e)
+        return jsonify({'error': str(e), 'reply': 'Sorry, I could not connect to Claude. Please try again.'}), 500
+
 @app.route('/api/bike-news', methods=['GET'])
 def bike_news():
     try:
