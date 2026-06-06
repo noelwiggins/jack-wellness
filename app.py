@@ -10,69 +10,7 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)
 
 # ── AUTH ──────────────────────────────────────────────────
-from functools import wraps
-from flask import session, redirect, url_for
 
-app.secret_key = os.environ.get('SECRET_KEY', 'pw-5565-health-dash-2026')
-DASHBOARD_PASSWORD = '5565'
-
-def login_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not session.get('authenticated'):
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    error = ''
-    if request.method == 'POST':
-        pw = request.form.get('password', '').strip()
-        if pw == DASHBOARD_PASSWORD:
-            session['authenticated'] = True
-            session.permanent = True
-            return redirect(url_for('index'))
-        error = 'Incorrect password.'
-    return f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Health Dashboard — Sign In</title>
-<style>
-*{{margin:0;padding:0;box-sizing:border-box}}
-body{{background:#0D0D14;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Helvetica Neue',sans-serif}}
-.box{{background:#14141F;border:1px solid #2A2A3E;border-radius:16px;padding:36px 32px;width:320px;text-align:center}}
-.lock{{font-size:36px;margin-bottom:16px}}
-h2{{color:#E8E0F8;font-size:18px;font-weight:600;margin-bottom:6px;letter-spacing:-.3px}}
-p{{color:#6A6490;font-size:12px;margin-bottom:24px}}
-input{{width:100%;background:#0D0D14;border:1px solid #2A2A3E;border-radius:10px;padding:12px 16px;color:#E8E0F8;font-size:18px;text-align:center;letter-spacing:4px;font-weight:600;outline:none;transition:border-color .2s}}
-input:focus{{border-color:#9B7FE0}}
-input::placeholder{{letter-spacing:1px;font-size:13px;color:#3A3A56;font-weight:400}}
-.err{{color:#E05060;font-size:11px;margin-top:10px;min-height:16px}}
-button{{margin-top:16px;width:100%;background:#7B55CC;border:none;border-radius:10px;padding:13px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s}}
-button:hover{{background:#9B75EC}}
-</style>
-</head>
-<body>
-<div class="box">
-  <div class="lock">🔒</div>
-  <h2>Health Dashboard</h2>
-  <p>Enter your PIN to continue</p>
-  <form method="POST">
-    <input type="password" name="password" placeholder="Enter PIN" autofocus inputmode="numeric" maxlength="10">
-    <div class="err">{error}</div>
-    <button type="submit">Unlock →</button>
-  </form>
-</div>
-</body>
-</html>'''
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
 
 
 # ── DATABASE ──────────────────────────────────────────────
@@ -277,7 +215,6 @@ except Exception as e:
     print("DB init warning:", e)
 
 @app.route('/')
-@login_required
 def index():
     return render_template('index.html')
 
@@ -352,7 +289,6 @@ def save_today():
     return jsonify({"success": True, "xp_earned": xp, "completion_pct": pct})
 
 @app.route('/api/history', methods=['GET'])
-@login_required
 def get_history():
     limit = request.args.get('limit', 365, type=int)
     try:
