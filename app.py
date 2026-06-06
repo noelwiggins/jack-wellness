@@ -443,26 +443,6 @@ def get_brooklyn_time():
     except Exception:
         return datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
 
-def get_brooklyn_weather():
-    """Fetch current Brooklyn weather from OpenWeatherMap."""
-    try:
-        import urllib.request as _ur, json as _j
-        api_key = os.environ.get('OPENWEATHER_API_KEY', '')
-        if not api_key:
-            return None
-        url = f'https://api.openweathermap.org/data/2.5/weather?q=Brooklyn,US&appid={api_key}&units=imperial'
-        with _ur.urlopen(url, timeout=5) as r:
-            d = _j.loads(r.read())
-        temp = round(d['main']['temp'])
-        feels = round(d['main']['feels_like'])
-        desc = d['weather'][0]['description'].capitalize()
-        humidity = d['main']['humidity']
-        wind = round(d['wind']['speed'])
-        return f"{temp}°F (feels like {feels}°F), {desc}, {humidity}% humidity, wind {wind} mph"
-    except Exception as e:
-        print("Weather error:", e)
-        return None
-
 @app.route('/api/ask', methods=['POST'])
 def ask_claude():
     try:
@@ -474,13 +454,13 @@ def ask_claude():
         if not messages:
             return jsonify({'error': 'No messages provided'}), 400
 
-        # Build enriched system prompt with live time and weather
+        # Build enriched system prompt with live time
+        # Weather is handled by web search tool automatically
         current_time = get_brooklyn_time()
-        weather = get_brooklyn_weather()
 
         live_context = f"""LIVE CONTEXT (updated each request):
 Current time in Brooklyn: {current_time}
-Current Brooklyn weather: {weather if weather else 'unavailable (OpenWeather API key not set)'}
+Note: You have web search available — use it for current weather, news, and any real-time information.
 
 """
         full_system = live_context + context
