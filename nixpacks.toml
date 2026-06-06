@@ -1,5 +1,8 @@
+[phases.setup]
+nixPkgs = ["python311", "python311Packages.pip"]
+
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = ["pip install -r requirements.txt --break-system-packages"]
 
 [start]
-cmd = "gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 60"
+cmd = "gunicorn app:app --bind 0.0.0.0:$PORT --workers 1"
