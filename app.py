@@ -43,12 +43,19 @@ GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', 'https://jack-wellness.up.railway.app/auth/gmail/callback')
 GMAIL_TARGET_EMAIL = 'perrywigginsjack@gmail.com'
 JOB_FILTER_QUERY = (
-    '(subject:(interview OR "thank you for applying" OR "your application" OR '
-    'application OR position OR opportunity OR "next steps" OR offer OR onboarding OR '
-    'phone screen OR "moving forward") OR '
-    'from:(indeed OR linkedin OR safehorizon OR vibrant.org OR sanctuaryforfamilies OR '
-    'myworkday OR greenhouse OR lever.co OR icims OR ziprecruiter OR glassdoor OR '
-    'workday OR smartrecruiters)) newer_than:45d'
+    '(subject:("your application" OR "thank you for applying" OR interview OR '
+    '"next steps" OR offer OR "moving forward" OR "application status" OR '
+    '"regarding your application" OR onboarding OR "phone screen" OR '
+    '"update on your application" OR "hiring" OR "we regret" OR "unfortunately") OR '
+    'from:(safehorizon.org OR vibrant.org OR sanctuaryforfamilies.org OR '
+    'myworkday.com OR greenhouse.io OR lever.co OR icims.com OR smartrecruiters.com OR '
+    'workday.com OR ashbyhq.com)) '
+    '-from:(jobalerts-noreply@linkedin.com OR notifications-noreply@linkedin.com OR '
+    'messages-noreply@linkedin.com OR em.linkedin.com OR donotreply@match.indeed.com OR '
+    'linkedin.com) '
+    '-subject:("noticed you" OR "appeared in" OR premium OR "new updates" OR '
+    '"people you may know" OR digest) '
+    'newer_than:45d'
 )
 
 def get_db():
