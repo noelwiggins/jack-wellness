@@ -41,7 +41,7 @@ DATABASE_URL = os.environ.get('DATABASE_URL', '')
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', 'https://jack-wellness.up.railway.app/auth/gmail/callback')
-GMAIL_TARGET_EMAIL = 'jackperrywiggins@gmail.com'
+GMAIL_TARGET_EMAIL = 'perrywigginsjack@gmail.com'
 JOB_FILTER_QUERY = (
     '(subject:(interview OR "thank you for applying" OR "your application" OR '
     'application OR position OR opportunity OR "next steps" OR offer OR onboarding OR '

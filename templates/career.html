@@ -352,7 +352,7 @@ async function loadGmailCard(){
     }
     if(!status.connected){
       dot.classList.remove('on');
-      sub.innerHTML = `Not connected yet. Tap below to authorize <b>${status.email || 'jackperrywiggins@gmail.com'}</b> — read-only access, filtered to job-related mail only.`;
+      sub.innerHTML = `Not connected yet. Tap below to authorize <b>${status.email || 'perrywigginsjack@gmail.com'}</b> — read-only access, filtered to job-related mail only.`;
       body.innerHTML = `<button class="btn btn-call" onclick="window.location.href='/auth/gmail/connect'">🔗 Connect Gmail</button>`;
       return;
     }
