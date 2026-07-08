@@ -212,6 +212,65 @@ def init_db():
     conn.close()
     print("PostgreSQL database initialized")
 
+def ensure_additional_seed_data():
+    """Idempotently adds new leads/pins without duplicating or wiping existing rows."""
+    try:
+        conn = get_db()
+        c = conn.cursor()
+
+        extra_pins = [
+            ("Freddy's Bar", "Bar", "Bartender / Server (walk-in)", "walkin", "627 5th Ave, Brooklyn, NY 11215",
+             "+1 718-768-0131", None, 40.6632339, -73.9911145, "Laid-back neighborhood bar, back room hosts events — steady turnover.", 16),
+            ("Chela", "Bar", "Server / Host (walk-in)", "walkin", "408 5th Ave, Brooklyn, NY 11215",
+             "+1 718-701-1891", None, 40.6702928, -73.9856078, "Busy, well-reviewed Mexican restaurant — high volume, likely to need FOH help.", 17),
+            ("Blueprint", "Bar", "Bartender / Server (walk-in)", "walkin", "196 5th Ave, Brooklyn, NY 11217",
+             None, None, 40.6768844, -73.9803770, "Craft cocktail bar, evening hours.", 18),
+            ("Black Oak on Fifth", "Bar", "Server / Host (walk-in)", "walkin", "200 5th Ave, Brooklyn, NY 11217",
+             "+1 347-599-0491", None, 40.6768290, -73.9804610, "Casual comfort food spot, packed on weekends.", 19),
+            ("Terrace Restaurant & Bakery", "Bar", "Server / Counter (walk-in)", "walkin", "280 5th Ave, Brooklyn, NY 11215",
+             "+1 929-624-2646", None, 40.6742312, -73.9823146, "High-volume all-day brunch spot, huge menu.", 20),
+            ("Prospect Bar and Grill", "Bar", "Bartender / Server (walk-in)", "walkin", "545 5th Ave, Brooklyn, NY 11215",
+             "+1 347-599-1087", None, 40.6657841, -73.9889618, "Family-friendly bar/restaurant, brunch + evening crowd.", 21),
+            ("South Slope Restaurant & Bar", "Bar", "Server / Counter (walk-in)", "walkin", "486 5th Ave, Brooklyn, NY 11215",
+             "+1 718-499-0005", None, 40.6678145, -73.9876262, "Casual diner-style menu, steady daytime traffic.", 22),
+        ]
+        for p in extra_pins:
+            c.execute('''
+                INSERT INTO job_map_pins (name, category, role_title, status, address, phone, website, lat, lng, info, sort_order)
+                SELECT %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s
+                WHERE NOT EXISTS (SELECT 1 FROM job_map_pins WHERE name = %s)
+            ''', p + (p[0],))
+
+        extra_leads = [
+            ("Tutoring & Mentoring", "Varsity Tutors", "Online Tutor — Psychology / Test Prep",
+             "https://www.varsitytutors.com/tutoring/apply", "https://www.varsitytutors.com/tutoring/apply",
+             "", "~$15\u2013$40/hr, self-set schedule",
+             "1-on-1 online tutoring platform with high demand for psychology and test-prep subjects. Set your own hours, no cold-calling for clients.", 6),
+            ("Tutoring & Mentoring", "Wyzant", "Private Tutor — set your own subjects & rate",
+             "https://www.wyzant.com/tutor/apply", "https://www.wyzant.com/tutor/apply",
+             "", "Tutor sets rate, typical $25\u2013$45/hr for psych/test prep",
+             "Marketplace model — build a profile, students message you directly. Good fit for psych, research methods, or general test prep given his NYU background.", 7),
+            ("Tutoring & Mentoring", "Ivy Tutors Network", "In-Person Tutor (NYC)",
+             "https://ivytutorsnetwork.com/careers/", "https://ivytutorsnetwork.com/careers/",
+             "", "Competitive, some roles include paid TA opportunities",
+             "NYC-based in-person tutoring company; some listings mention paid TA opportunities alongside tutoring — good match for his research + tutoring combo.", 8),
+            ("Tutoring & Mentoring", "The Princeton Review / Tutor.com", "Private Tutor",
+             "https://www.princetonreview.com/company/careers", "https://www.princetonreview.com/company/careers",
+             "", "Premium 1-on-1 rates, flexible",
+             "Large, well-established tutoring brand (Tutor.com). Premium private tutoring program pays well above marketplace average for strong academic backgrounds.", 9),
+        ]
+        for l in extra_leads:
+            c.execute('''
+                INSERT INTO career_leads (category, org_name, role_title, website, apply_url, phone, pay_range, info, sort_order)
+                SELECT %s,%s,%s,%s,%s,%s,%s,%s,%s
+                WHERE NOT EXISTS (SELECT 1 FROM career_leads WHERE org_name = %s)
+            ''', l + (l[1],))
+
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("Additional seed error:", e)
+
 # ── PROTOCOL ──────────────────────────────────────────────
 PROTOCOL_VERSION = "1.7.0"
 PROTOCOL_NOTES = "Added Recovery section: home red light sauna daily, bathhouse sauna + cold plunge 3x/week, contrast therapy protocol, TMS day red light timing"
@@ -383,6 +442,7 @@ LEVELS = [
 # Initialize DB on startup
 try:
     init_db()
+    ensure_additional_seed_data()
 except Exception as e:
     print("DB init warning:", e)
 
@@ -1077,5 +1137,6 @@ PROTOCOL HIGHLIGHTS:
 
 if __name__ == '__main__':
     init_db()
+    ensure_additional_seed_data()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)

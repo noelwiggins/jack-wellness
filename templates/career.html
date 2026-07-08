@@ -89,12 +89,12 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .dialer-close-btn{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);border-radius:14px;padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:13px;cursor:pointer}
 
 .gmail-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:18px}
-.gmail-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.gmail-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;user-select:none}
 .gmail-icon{font-size:20px}
 .gmail-title{font-size:14px;font-weight:700;color:var(--text);flex:1}
 .gmail-dot{width:8px;height:8px;border-radius:50%;background:var(--text3)}
 .gmail-dot.on{background:var(--green);box-shadow:0 0 6px var(--green)}
-.gmail-sub{font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.5}
+.gmail-sub{font-size:11px;color:var(--text3);margin-bottom:4px;line-height:1.5}
 .gmail-filter-tag{display:inline-block;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:3px 8px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text2);margin-top:6px}
 .gmail-msg{background:var(--bg3);border-radius:10px;padding:10px 12px;margin-bottom:8px}
 .gmail-msg-subject{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:2px}
@@ -103,6 +103,15 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .gmail-msg-date{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:4px}
 .gmail-msg-link{font-size:10px;color:var(--green);text-decoration:none;font-family:'JetBrains Mono',monospace;margin-top:4px;display:inline-block}
 .gmail-empty{font-size:11.5px;color:var(--text3);text-align:center;padding:16px 0}
+
+.chevron{font-size:12px;color:var(--text3);transition:transform .2s;flex-shrink:0}
+.chevron.open{transform:rotate(180deg)}
+.collapsible-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.collapsible-body.open{max-height:6000px}
+
+.cat-head-collapsible{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;padding:10px 2px;margin-top:14px;border-bottom:1px solid var(--border)}
+.cat-head-collapsible-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;flex:1}
+.cat-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);background:var(--bg3);border-radius:10px;padding:2px 8px}
 
 .map-section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:14px}
 .map-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
@@ -113,6 +122,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .map-legend-dot.live{background:var(--amber);box-shadow:0 0 4px var(--amber)}
 .map-legend-dot.cafe{background:var(--green);box-shadow:0 0 4px var(--green)}
 .map-legend-dot.boutique{background:var(--blue);box-shadow:0 0 4px var(--blue)}
+.map-legend-dot.bar{background:var(--red);box-shadow:0 0 4px var(--red)}
 #parkSlopeMap{height:340px;border-radius:12px;overflow:hidden;border:1px solid var(--border)}
 .leaflet-popup-content-wrapper{background:var(--card2);color:var(--text);border-radius:12px;border:1px solid var(--border2)}
 .leaflet-popup-tip{background:var(--card2)}
@@ -152,18 +162,22 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
       <span class="map-legend-item"><span class="map-legend-dot live"></span>Live Posting</span>
       <span class="map-legend-item"><span class="map-legend-dot cafe"></span>Cafe (walk-in)</span>
       <span class="map-legend-item"><span class="map-legend-dot boutique"></span>Boutique (walk-in)</span>
+      <span class="map-legend-item"><span class="map-legend-dot bar"></span>Bar/Restaurant (walk-in)</span>
     </div>
     <div id="parkSlopeMap"></div>
   </div>
 
   <div class="gmail-card" id="gmailCard">
-    <div class="gmail-head">
+    <div class="gmail-head" onclick="toggleCollapse('gmail-collapsible')">
       <span class="gmail-icon">📬</span>
       <span class="gmail-title">Job Responses (Gmail)</span>
       <span class="gmail-dot" id="gmailDot"></span>
+      <span class="chevron" id="gmail-collapsible-chevron">▾</span>
     </div>
     <div class="gmail-sub" id="gmailSub">Checking connection…</div>
-    <div id="gmailBody"></div>
+    <div class="collapsible-body" id="gmail-collapsible">
+      <div id="gmailBody"></div>
+    </div>
   </div>
 
   <div class="progress-strip">
@@ -218,6 +232,18 @@ async function loadLeads(){
   }
 }
 
+function toggleCollapse(id){
+  const el = document.getElementById(id);
+  const chevron = document.getElementById(id+'-chevron');
+  if(!el) return;
+  el.classList.toggle('open');
+  if(chevron) chevron.classList.toggle('open');
+}
+
+function slugify(s){
+  return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
 function render(){
   const container = document.getElementById('leadsContainer');
   if(!LEADS.length){
@@ -231,10 +257,20 @@ function render(){
   const cats = [...new Set(LEADS.map(l=>l.category))];
   let html = '';
   cats.forEach(cat=>{
-    html += `<div class="cat-head">${cat}</div>`;
-    LEADS.filter(l=>l.category===cat).forEach(lead=>{
+    const catLeads = LEADS.filter(l=>l.category===cat);
+    const appliedCount = catLeads.filter(l=>l.checked).length;
+    const catId = 'cat-' + slugify(cat);
+    const wasOpen = document.getElementById(catId)?.classList.contains('open');
+    html += `<div class="cat-head-collapsible" onclick="toggleCollapse('${catId}')">
+      <span class="cat-head-collapsible-label">${esc(cat)}</span>
+      <span class="cat-count">${appliedCount}/${catLeads.length} applied</span>
+      <span class="chevron${wasOpen ? ' open' : ''}" id="${catId}-chevron">▾</span>
+    </div>
+    <div class="collapsible-body${wasOpen ? ' open' : ''}" id="${catId}">`;
+    catLeads.forEach(lead=>{
       html += renderCard(lead);
     });
+    html += `</div>`;
   });
   container.innerHTML = html;
 }
@@ -384,19 +420,22 @@ async function loadGmailCard(){
 
     if(!status.configured){
       dot.classList.remove('on');
-      sub.innerHTML = `Not set up yet — this is a stub. Add <b>GOOGLE_CLIENT_ID</b>, <b>GOOGLE_CLIENT_SECRET</b>, and <b>GOOGLE_REDIRECT_URI</b> in Railway variables (from a Google Cloud OAuth client with Gmail API enabled), then reload.`;
-      body.innerHTML = `<button class="btn btn-cal" disabled>🔒 Connect Gmail (needs setup)</button>`;
+      sub.innerHTML = `Not set up yet — tap to see setup steps.`;
+      body.innerHTML = `<div class="gmail-empty">Add <b>GOOGLE_CLIENT_ID</b>, <b>GOOGLE_CLIENT_SECRET</b>, and <b>GOOGLE_REDIRECT_URI</b> in Railway variables (from a Google Cloud OAuth client with Gmail API enabled), then reload.</div>
+        <button class="btn btn-cal" disabled>🔒 Connect Gmail (needs setup)</button>`;
       return;
     }
     if(!status.connected){
       dot.classList.remove('on');
-      sub.innerHTML = `Not connected yet. Tap below to authorize <b>${status.email || 'perrywigginsjack@gmail.com'}</b> — read-only access, filtered to job-related mail only.`;
-      body.innerHTML = `<button class="btn btn-call" onclick="window.location.href='/auth/gmail/connect'">🔗 Connect Gmail</button>`;
+      sub.innerHTML = `Not connected yet — tap to connect.`;
+      body.innerHTML = `<div class="gmail-empty">Authorize <b>${status.email || 'perrywigginsjack@gmail.com'}</b> — read-only access, filtered to job-related mail only.</div>
+        <button class="btn btn-call" onclick="window.location.href='/auth/gmail/connect'">🔗 Connect Gmail</button>`;
       return;
     }
     dot.classList.add('on');
-    sub.innerHTML = `Connected as <b>${status.email}</b>. Showing employer replies (interviews, application status, offers) — LinkedIn/Indeed job-alert noise and known marketing senders filtered out.<span class="gmail-filter-tag">filter · last 60 days</span>`;
+    sub.innerHTML = `Connected as <b>${status.email}</b> — tap to view filtered replies.`;
     body.innerHTML = `
+      <div class="gmail-sub" style="margin-bottom:10px">Showing employer replies (interviews, application status, offers) — LinkedIn/Indeed job-alert noise and known marketing senders filtered out.<span class="gmail-filter-tag">filter · last 60 days</span></div>
       <div class="lead-actions" style="margin-bottom:12px">
         <button class="btn btn-cal" onclick="loadGmailInbox()">🔄 Refresh</button>
         <button class="btn btn-cal" onclick="disconnectGmail()">🔌 Disconnect</button>
@@ -459,6 +498,7 @@ function pinColor(pin){
   if(pin.status === 'live') return '#E8A84A';
   if(pin.category === 'Cafe') return '#4CAF6B';
   if(pin.category === 'Boutique') return '#5BA8D8';
+  if(pin.category === 'Bar') return '#E05050';
   return '#9BB09D';
 }
 
