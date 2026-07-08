@@ -55,7 +55,60 @@ def init_db():
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS career_leads (
+            id SERIAL PRIMARY KEY,
+            category TEXT NOT NULL,
+            org_name TEXT NOT NULL,
+            role_title TEXT,
+            website TEXT,
+            apply_url TEXT,
+            phone TEXT,
+            pay_range TEXT,
+            info TEXT,
+            checked BOOLEAN DEFAULT FALSE,
+            last_contact_date TEXT,
+            next_contact_date TEXT,
+            follow_up_notes TEXT DEFAULT '',
+            sort_order INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     conn.commit()
+
+    c.execute('SELECT COUNT(*) FROM career_leads')
+    if c.fetchone()[0] == 0:
+        seed = [
+            ("Crisis & Clinical", "Safe Horizon", "Client Advocate Specialist — Hotlines",
+             "https://www.safehorizon.org/career-opportunities/",
+             "https://safehorizon.csod.com/ux/ats/careersite/1/home/requisition/1619?c=safehorizon",
+             "(212) 577-7700", "$23.63–$26.58/hr, 35 hrs/wk + full benefits",
+             "Fields calls to Safe Horizon's 3 24-hour hotlines (Domestic Violence, Crime Victims, Rape & Incest). Conducts safety/needs assessments, trauma-informed client-centered support. Bachelor's or equivalent experience.", 1),
+            ("Crisis & Clinical", "NYC 988 / Vibrant Emotional Health", "Crisis Counselor",
+             "https://www.vibrant.org/get-involved/work-for-us/",
+             "https://vibrant.wd5.myworkdayjobs.com/VEH_EXTERNAL_CAREER_SITE",
+             "(212) 254-0333", "$30.22–$32.00/hr",
+             "Answers NYC 988, NY HOPEline, National Suicide Prevention Lifeline, Disaster Distress Helpline via call/text/chat. Bachelor's or Master's level counselors both considered.", 2),
+            ("Crisis & Clinical", "Sanctuary for Families", "Crisis Intervention / Advocate roles",
+             "https://sanctuaryforfamilies.org/careers/", "https://sanctuaryforfamilies.org/careers/",
+             "(212) 349-6009", "Varies by role",
+             "NY's leading service provider for survivors of domestic violence, sex trafficking, gender violence. Legal helpline ext. 8000. Postings rotate — check careers page directly.", 3),
+            ("Retail & Local — Park Slope", "Mr. Boddington's", "Retail Associate",
+             "https://newyork.craigslist.org/search/brk/jjj?query=park+slope", "", "",
+             "Not listed — apply via posting",
+             "Live Craigslist listing in Park Slope, posted recently. Retail associate role.", 4),
+            ("Retail & Local — Park Slope", "Craigslist Brooklyn F&B Board", "Barista / FOH / Floor Lead / Steward (rotating)",
+             "https://newyork.craigslist.org/search/brooklyn-ny/fbh", "", "",
+             "Varies",
+             "General Brooklyn food/beverage/hospitality board — updates daily. Recent hits: Cafe/Specialty Shop Floor Lead, Experienced Steward, Lavaplatos/Dishwasher (Park Slope). Check every 1–2 days.", 5),
+        ]
+        c.executemany('''
+            INSERT INTO career_leads (category, org_name, role_title, website, apply_url, phone, pay_range, info, sort_order)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        ''', seed)
+        conn.commit()
+
     conn.close()
     print("PostgreSQL database initialized")
 
@@ -440,6 +493,55 @@ def get_chart_mood():
         return jsonify([{"date": r['log_date'], **json.loads(r['mood'] or '{}')} for r in rows])
     except Exception as e:
         return jsonify([])
+
+@app.route('/career')
+@login_required
+def career():
+    return render_template('career.html')
+
+@app.route('/api/career/leads', methods=['GET'])
+@login_required
+def get_career_leads():
+    try:
+        conn = get_db()
+        c = conn.cursor(row_factory=dict_row)
+        c.execute('SELECT * FROM career_leads ORDER BY sort_order ASC, id ASC')
+        rows = c.fetchall()
+        conn.close()
+        return jsonify(rows)
+    except Exception as e:
+        print("DB error:", e)
+        return jsonify([]), 500
+
+@app.route('/api/career/leads/<int:lead_id>', methods=['POST'])
+@login_required
+def update_career_lead(lead_id):
+    data = request.get_json(force=True) or {}
+    fields = []
+    values = []
+    if 'checked' in data:
+        fields.append('checked = %s'); values.append(bool(data['checked']))
+    if 'last_contact_date' in data:
+        fields.append('last_contact_date = %s'); values.append(data['last_contact_date'] or None)
+    if 'next_contact_date' in data:
+        fields.append('next_contact_date = %s'); values.append(data['next_contact_date'] or None)
+    if 'follow_up_notes' in data:
+        fields.append('follow_up_notes = %s'); values.append(data['follow_up_notes'] or '')
+    if not fields:
+        return jsonify({"error": "no fields to update"}), 400
+    fields.append('updated_at = CURRENT_TIMESTAMP')
+    values.append(lead_id)
+    try:
+        conn = get_db()
+        c = conn.cursor(row_factory=dict_row)
+        c.execute(f'UPDATE career_leads SET {", ".join(fields)} WHERE id = %s RETURNING *', values)
+        row = c.fetchone()
+        conn.commit()
+        conn.close()
+        return jsonify(row)
+    except Exception as e:
+        print("DB error:", e)
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/version', methods=['GET'])
 def get_version():
