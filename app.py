@@ -147,6 +147,68 @@ def init_db():
     ''')
     conn.commit()
 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS job_map_pins (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL,
+            role_title TEXT,
+            status TEXT DEFAULT 'walkin',
+            address TEXT,
+            phone TEXT,
+            website TEXT,
+            lat DOUBLE PRECISION,
+            lng DOUBLE PRECISION,
+            info TEXT,
+            checked BOOLEAN DEFAULT FALSE,
+            sort_order INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+
+    c.execute('SELECT COUNT(*) FROM job_map_pins')
+    if c.fetchone()[0] == 0:
+        pins = [
+            ("Mr. Boddington's Studio", "Retail", "Retail Associate", "live", "153 7th Ave, Brooklyn, NY 11215",
+             None, "https://newyork.craigslist.org/search/brk/jjj?query=park+slope", 40.6724636, -73.9767367,
+             "Live Craigslist listing — stationery/gift shop, apply directly.", 1),
+            ("Poetica Coffee", "Cafe", "Barista (walk-in)", "walkin", "240 7th Ave, Brooklyn, NY 11215",
+             None, None, 40.6697216, -73.9794446, "Popular, well-reviewed, busy morning rush — bring resume, ask for manager.", 2),
+            ("Variety Coffee", "Cafe", "Barista (walk-in)", "walkin", "312 7th Ave, Brooklyn, NY 11215",
+             "+1 718-788-1891", None, 40.6676888, -73.9811894, "Neighborhood favorite, steady foot traffic.", 3),
+            ("Brooklyn Bread Cafe", "Cafe", "Counter / Kitchen (walk-in)", "walkin", "347 7th Ave, Brooklyn, NY 11215",
+             "+1 929-491-0700", None, 40.6663101, -73.9818408, "Sandwich/bakery counter — often needs morning shift help.", 4),
+            ("Hungry Ghost Coffee", "Cafe", "Barista (walk-in)", "walkin", "156 7th Ave, Brooklyn, NY 11215",
+             None, None, 40.6723139, -73.9772867, "Local mini-chain, multiple locations, decent turnover.", 5),
+            ("Cuppa Hive Coffee", "Cafe", "Barista (walk-in)", "walkin", "428 15th St, Brooklyn, NY 11215",
+             "+1 347-415-7042", None, 40.6618849, -73.9819648, "Cozy spot near Prospect Park, high ratings.", 6),
+            ("Cusp Crepe and Espresso Bar", "Cafe", "Counter (walk-in)", "walkin", "321 7th Ave, Brooklyn, NY 11215",
+             "+1 718-788-2980", None, 40.6670625, -73.9812069, "Small shop, morning cook/counter help often needed.", 7),
+            ("Brew Memories", "Cafe", "Barista (walk-in)", "walkin", "295 7th Ave, Brooklyn, NY 11215",
+             "+1 347-987-3954", None, 40.6677733, -73.9805664, "Bubble tea + coffee, busy afternoons.", 8),
+            ("Blank Street", "Cafe", "Barista (walk-in)", "walkin", "287 6th Ave, Brooklyn, NY 11215",
+             None, "https://www.blankstreet.com/careers", 40.6726747, -73.979786, "Growing chain — check their careers page too, not just walk-in.", 9),
+            ("Flea Park Slope", "Boutique", "Sales Associate (walk-in)", "walkin", "211 5th Ave, Brooklyn, NY 11215",
+             "+1 347-223-4826", None, 40.6761258, -73.9804547, "Clothing/gift boutique, community favorite.", 10),
+            ("Something Else on Fifth", "Boutique", "Sales Associate (walk-in)", "walkin", "206 5th Ave, Brooklyn, NY 11217",
+             "+1 718-622-1262", None, 40.6765951, -73.9805352, "Women's clothing, known for warm staff.", 11),
+            ("Annie's Blue Ribbon General Store", "Boutique", "Sales Associate (walk-in)", "walkin", "232 5th Ave, Brooklyn, NY 11215",
+             "+1 718-522-9848", None, 40.6756829, -73.9811344, "Neighborhood gift shop, community pillar.", 12),
+            ("BLOK HILL", "Boutique", "Sales Associate (walk-in)", "walkin", "107a 7th Ave, Brooklyn, NY 11215",
+             "+1 718-783-0789", None, 40.6739445, -73.9756389, "Home goods/clothing, small but well-reviewed.", 13),
+            ("fig.", "Boutique", "Sales Associate (walk-in)", "walkin", "121 7th Ave, Brooklyn, NY 11215",
+             "+1 718-622-5550", None, 40.673338, -73.975892, "Men's apparel boutique on 7th Ave.", 14),
+            ("KIWI", "Boutique", "Sales Associate (walk-in)", "walkin", "119 7th Ave, Brooklyn, NY 11215",
+             "+1 718-622-5551", None, 40.6734018, -73.9758977, "Women's clothing, same ownership as fig. next door.", 15),
+        ]
+        c.executemany('''
+            INSERT INTO job_map_pins (name, category, role_title, status, address, phone, website, lat, lng, info, sort_order)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        ''', pins)
+        conn.commit()
+
     conn.close()
     print("PostgreSQL database initialized")
 
@@ -587,6 +649,39 @@ def update_career_lead(lead_id):
         return jsonify({"error": str(e)}), 500
 
 # ── GMAIL JOB-RESPONSE INBOX ──────────────────────────────
+
+@app.route('/api/career/map-pins', methods=['GET'])
+@login_required
+def get_map_pins():
+    try:
+        conn = get_db()
+        c = conn.cursor(row_factory=dict_row)
+        c.execute('SELECT * FROM job_map_pins ORDER BY sort_order ASC, id ASC')
+        rows = c.fetchall()
+        conn.close()
+        return jsonify(rows)
+    except Exception as e:
+        print("DB error:", e)
+        return jsonify([]), 500
+
+@app.route('/api/career/map-pins/<int:pin_id>', methods=['POST'])
+@login_required
+def update_map_pin(pin_id):
+    data = request.get_json(force=True) or {}
+    if 'checked' not in data:
+        return jsonify({"error": "no fields to update"}), 400
+    try:
+        conn = get_db()
+        c = conn.cursor(row_factory=dict_row)
+        c.execute('UPDATE job_map_pins SET checked = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s RETURNING *',
+                   (bool(data['checked']), pin_id))
+        row = c.fetchone()
+        conn.commit()
+        conn.close()
+        return jsonify(row)
+    except Exception as e:
+        print("DB error:", e)
+        return jsonify({"error": str(e)}), 500
 
 def get_gmail_row():
     try:
