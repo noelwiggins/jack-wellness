@@ -86,6 +86,21 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .dialer-call-btn{flex:1;background:var(--green);color:#0D1410;border:none;border-radius:14px;padding:14px;font-weight:800;font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:.5px;cursor:pointer;text-align:center;text-decoration:none;display:block}
 .dialer-close-btn{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);border-radius:14px;padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:13px;cursor:pointer}
 
+.gmail-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:18px}
+.gmail-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.gmail-icon{font-size:20px}
+.gmail-title{font-size:14px;font-weight:700;color:var(--text);flex:1}
+.gmail-dot{width:8px;height:8px;border-radius:50%;background:var(--text3)}
+.gmail-dot.on{background:var(--green);box-shadow:0 0 6px var(--green)}
+.gmail-sub{font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.5}
+.gmail-filter-tag{display:inline-block;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:3px 8px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text2);margin-top:6px}
+.gmail-msg{background:var(--bg3);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.gmail-msg-subject{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:2px}
+.gmail-msg-from{font-size:10.5px;color:var(--blue);margin-bottom:4px}
+.gmail-msg-snippet{font-size:11.5px;color:var(--text2);line-height:1.4}
+.gmail-msg-date{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:4px}
+.gmail-msg-link{font-size:10px;color:var(--green);text-decoration:none;font-family:'JetBrains Mono',monospace;margin-top:4px;display:inline-block}
+.gmail-empty{font-size:11.5px;color:var(--text3);text-align:center;padding:16px 0}
 .empty-state{text-align:center;padding:40px 20px;color:var(--text3);font-size:13px}
 .loading{text-align:center;padding:40px;color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:12px}
 </style>
@@ -93,7 +108,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 <body>
 
 <nav class="nav">
-  <button class="nav-back" onclick="window.location.href='/'">← BACK</button>
+  <button class="nav-back" onclick="window.location.href='/wellness'">🌿 WELLNESS</button>
   <div class="nav-logo">Career Office</div>
 </nav>
 
@@ -101,6 +116,16 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
   <div class="page-head">
     <div class="page-title">Job Search Command Center</div>
     <div class="page-sub" id="pageDate">—</div>
+  </div>
+
+  <div class="gmail-card" id="gmailCard">
+    <div class="gmail-head">
+      <span class="gmail-icon">📬</span>
+      <span class="gmail-title">Job Responses (Gmail)</span>
+      <span class="gmail-dot" id="gmailDot"></span>
+    </div>
+    <div class="gmail-sub" id="gmailSub">Checking connection…</div>
+    <div id="gmailBody"></div>
   </div>
 
   <div class="progress-strip">
@@ -310,6 +335,75 @@ function addToCalendar(id){
   window.open(url, '_blank');
 }
 
+// ---- Gmail Job Responses ----
+async function loadGmailCard(){
+  try{
+    const res = await fetch('/api/career/gmail-status');
+    const status = await res.json();
+    const dot = document.getElementById('gmailDot');
+    const sub = document.getElementById('gmailSub');
+    const body = document.getElementById('gmailBody');
+
+    if(!status.configured){
+      dot.classList.remove('on');
+      sub.innerHTML = `Not set up yet — this is a stub. Add <b>GOOGLE_CLIENT_ID</b>, <b>GOOGLE_CLIENT_SECRET</b>, and <b>GOOGLE_REDIRECT_URI</b> in Railway variables (from a Google Cloud OAuth client with Gmail API enabled), then reload.`;
+      body.innerHTML = `<button class="btn btn-cal" disabled>🔒 Connect Gmail (needs setup)</button>`;
+      return;
+    }
+    if(!status.connected){
+      dot.classList.remove('on');
+      sub.innerHTML = `Not connected yet. Tap below to authorize <b>${status.email || 'jackperrywiggins@gmail.com'}</b> — read-only access, filtered to job-related mail only.`;
+      body.innerHTML = `<button class="btn btn-call" onclick="window.location.href='/auth/gmail/connect'">🔗 Connect Gmail</button>`;
+      return;
+    }
+    dot.classList.add('on');
+    sub.innerHTML = `Connected as <b>${status.email}</b>. Showing replies matching interview/application/offer keywords and known job-board senders.<span class="gmail-filter-tag">filter · last 45 days</span>`;
+    body.innerHTML = `
+      <div class="lead-actions" style="margin-bottom:12px">
+        <button class="btn btn-cal" onclick="loadGmailInbox()">🔄 Refresh</button>
+        <button class="btn btn-cal" onclick="disconnectGmail()">🔌 Disconnect</button>
+      </div>
+      <div id="gmailMessages"><div class="gmail-empty">Loading messages…</div></div>`;
+    loadGmailInbox();
+  }catch(e){
+    document.getElementById('gmailSub').textContent = 'Could not check Gmail connection status.';
+  }
+}
+
+async function loadGmailInbox(){
+  const container = document.getElementById('gmailMessages');
+  if(!container) return;
+  container.innerHTML = '<div class="gmail-empty">Loading messages…</div>';
+  try{
+    const res = await fetch('/api/career/gmail-inbox');
+    const data = await res.json();
+    if(data.error){
+      container.innerHTML = `<div class="gmail-empty">Error: ${esc(data.error)}</div>`;
+      return;
+    }
+    if(!data.messages || !data.messages.length){
+      container.innerHTML = '<div class="gmail-empty">No job-related emails matched the filter yet.</div>';
+      return;
+    }
+    container.innerHTML = data.messages.map(m => `
+      <div class="gmail-msg">
+        <div class="gmail-msg-subject">${esc(m.subject)}</div>
+        <div class="gmail-msg-from">${esc(m.from)}</div>
+        <div class="gmail-msg-snippet">${esc(m.snippet)}</div>
+        <div class="gmail-msg-date">${esc(m.date)}</div>
+        <a class="gmail-msg-link" href="${esc(m.link)}" target="_blank" rel="noopener">Open in Gmail →</a>
+      </div>`).join('');
+  }catch(e){
+    container.innerHTML = '<div class="gmail-empty">Could not load messages.</div>';
+  }
+}
+
+async function disconnectGmail(){
+  await fetch('/api/career/gmail-disconnect', {method:'POST'});
+  loadGmailCard();
+}
+
+loadGmailCard();
 loadLeads();
 </script>
 </body>

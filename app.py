@@ -1,11 +1,13 @@
 import os
-from datetime import datetime
+import secrets
+from urllib.parse import urlencode
 try:
     import pytz
     HAS_PYTZ = True
 except ImportError:
     HAS_PYTZ = False
 import json
+import requests
 import psycopg
 from psycopg.rows import dict_row
 from datetime import datetime, date, timedelta
@@ -34,6 +36,20 @@ def login_required(f):
 
 # ── DATABASE ──────────────────────────────────────────────
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
+
+# ── GMAIL JOB-RESPONSE INTEGRATION ───────────────────────
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', 'https://jack-wellness.up.railway.app/auth/gmail/callback')
+GMAIL_TARGET_EMAIL = 'jackperrywiggins@gmail.com'
+JOB_FILTER_QUERY = (
+    '(subject:(interview OR "thank you for applying" OR "your application" OR '
+    'application OR position OR opportunity OR "next steps" OR offer OR onboarding OR '
+    'phone screen OR "moving forward") OR '
+    'from:(indeed OR linkedin OR safehorizon OR vibrant.org OR sanctuaryforfamilies OR '
+    'myworkday OR greenhouse OR lever.co OR icims OR ziprecruiter OR glassdoor OR '
+    'workday OR smartrecruiters)) newer_than:45d'
+)
 
 def get_db():
     conn = psycopg.connect(DATABASE_URL)
@@ -108,6 +124,19 @@ def init_db():
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
         ''', seed)
         conn.commit()
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS gmail_connection (
+            id SERIAL PRIMARY KEY,
+            email TEXT NOT NULL UNIQUE,
+            access_token TEXT,
+            refresh_token TEXT,
+            token_expiry TIMESTAMP,
+            connected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
 
     conn.close()
     print("PostgreSQL database initialized")
@@ -289,6 +318,11 @@ except Exception as e:
 @app.route('/')
 @login_required
 def index():
+    return render_template('career.html')
+
+@app.route('/wellness')
+@login_required
+def wellness():
     return render_template('index.html')
 
 @app.route('/api/protocol', methods=['GET'])
@@ -497,7 +531,7 @@ def get_chart_mood():
 @app.route('/career')
 @login_required
 def career():
-    return render_template('career.html')
+    return redirect(url_for('index'))
 
 @app.route('/api/career/leads', methods=['GET'])
 @login_required
@@ -542,6 +576,182 @@ def update_career_lead(lead_id):
     except Exception as e:
         print("DB error:", e)
         return jsonify({"error": str(e)}), 500
+
+# ── GMAIL JOB-RESPONSE INBOX ──────────────────────────────
+
+def get_gmail_row():
+    try:
+        conn = get_db()
+        c = conn.cursor(row_factory=dict_row)
+        c.execute('SELECT * FROM gmail_connection ORDER BY id DESC LIMIT 1')
+        row = c.fetchone()
+        conn.close()
+        return row
+    except Exception as e:
+        print("Gmail DB error:", e)
+        return None
+
+def refresh_gmail_access_token(row):
+    if not row or not row.get('refresh_token'):
+        return None
+    try:
+        res = requests.post('https://oauth2.googleapis.com/token', data={
+            'client_id': GOOGLE_CLIENT_ID,
+            'client_secret': GOOGLE_CLIENT_SECRET,
+            'refresh_token': row['refresh_token'],
+            'grant_type': 'refresh_token',
+        }, timeout=15)
+        tok = res.json()
+        access_token = tok.get('access_token')
+        if not access_token:
+            return None
+        expiry = datetime.utcnow() + timedelta(seconds=tok.get('expires_in', 3600))
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('UPDATE gmail_connection SET access_token=%s, token_expiry=%s, updated_at=CURRENT_TIMESTAMP WHERE id=%s',
+                   (access_token, expiry, row['id']))
+        conn.commit()
+        conn.close()
+        return access_token
+    except Exception as e:
+        print("Gmail refresh error:", e)
+        return None
+
+def get_valid_gmail_access_token():
+    row = get_gmail_row()
+    if not row:
+        return None
+    expiry = row.get('token_expiry')
+    if expiry and expiry > datetime.utcnow() + timedelta(seconds=60):
+        return row['access_token']
+    return refresh_gmail_access_token(row)
+
+@app.route('/auth/gmail/connect')
+@login_required
+def gmail_connect():
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        return ("Gmail integration isn't configured yet. In Railway → jack-wellness → Variables, "
+                "add GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI "
+                "(from a Google Cloud OAuth client with the Gmail API enabled), then reload this page."), 200
+    state = secrets.token_urlsafe(16)
+    session['gmail_oauth_state'] = state
+    params = {
+        'client_id': GOOGLE_CLIENT_ID,
+        'redirect_uri': GOOGLE_REDIRECT_URI,
+        'response_type': 'code',
+        'scope': 'https://www.googleapis.com/auth/gmail.readonly',
+        'access_type': 'offline',
+        'prompt': 'consent',
+        'login_hint': GMAIL_TARGET_EMAIL,
+        'state': state,
+    }
+    return redirect('https://accounts.google.com/o/oauth2/v2/auth?' + urlencode(params))
+
+@app.route('/auth/gmail/callback')
+@login_required
+def gmail_callback():
+    code = request.args.get('code')
+    state = request.args.get('state')
+    if not code or state != session.get('gmail_oauth_state'):
+        return redirect(url_for('index'))
+    try:
+        token_res = requests.post('https://oauth2.googleapis.com/token', data={
+            'code': code,
+            'client_id': GOOGLE_CLIENT_ID,
+            'client_secret': GOOGLE_CLIENT_SECRET,
+            'redirect_uri': GOOGLE_REDIRECT_URI,
+            'grant_type': 'authorization_code',
+        }, timeout=15)
+        tok = token_res.json()
+        access_token = tok.get('access_token')
+        refresh_token = tok.get('refresh_token')
+        expires_in = tok.get('expires_in', 3600)
+        email = GMAIL_TARGET_EMAIL
+        try:
+            ui = requests.get('https://www.googleapis.com/oauth2/v2/userinfo',
+                               headers={'Authorization': f'Bearer {access_token}'}, timeout=10)
+            email = ui.json().get('email', GMAIL_TARGET_EMAIL)
+        except Exception:
+            pass
+        expiry = datetime.utcnow() + timedelta(seconds=expires_in)
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO gmail_connection (email, access_token, refresh_token, token_expiry)
+            VALUES (%s,%s,%s,%s)
+            ON CONFLICT (email) DO UPDATE SET
+                access_token = EXCLUDED.access_token,
+                refresh_token = COALESCE(EXCLUDED.refresh_token, gmail_connection.refresh_token),
+                token_expiry = EXCLUDED.token_expiry,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (email, access_token, refresh_token, expiry))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("Gmail callback error:", e)
+    return redirect(url_for('index'))
+
+@app.route('/api/career/gmail-status', methods=['GET'])
+@login_required
+def gmail_status():
+    row = get_gmail_row()
+    return jsonify({
+        "configured": bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET),
+        "connected": bool(row),
+        "email": row['email'] if row else None,
+    })
+
+@app.route('/api/career/gmail-disconnect', methods=['POST'])
+@login_required
+def gmail_disconnect():
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('DELETE FROM gmail_connection')
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("Gmail disconnect error:", e)
+    return jsonify({"ok": True})
+
+@app.route('/api/career/gmail-inbox', methods=['GET'])
+@login_required
+def gmail_inbox():
+    token = get_valid_gmail_access_token()
+    if not token:
+        return jsonify({"connected": False, "messages": []})
+    try:
+        list_res = requests.get(
+            'https://gmail.googleapis.com/gmail/v1/users/me/messages',
+            headers={'Authorization': f'Bearer {token}'},
+            params={'q': JOB_FILTER_QUERY, 'maxResults': 20},
+            timeout=15
+        )
+        data = list_res.json()
+        if 'error' in data:
+            return jsonify({"connected": True, "messages": [], "error": data['error'].get('message', 'Gmail API error')})
+        msgs = []
+        for m in data.get('messages', [])[:20]:
+            detail = requests.get(
+                f'https://gmail.googleapis.com/gmail/v1/users/me/messages/{m["id"]}',
+                headers={'Authorization': f'Bearer {token}'},
+                params={'format': 'metadata', 'metadataHeaders': ['Subject', 'From', 'Date']},
+                timeout=15
+            ).json()
+            headers_list = detail.get('payload', {}).get('headers', [])
+            hmap = {h['name']: h['value'] for h in headers_list}
+            msgs.append({
+                "id": m['id'],
+                "subject": hmap.get('Subject', '(no subject)'),
+                "from": hmap.get('From', ''),
+                "date": hmap.get('Date', ''),
+                "snippet": detail.get('snippet', ''),
+                "link": f"https://mail.google.com/mail/u/0/#inbox/{m['id']}",
+            })
+        return jsonify({"connected": True, "messages": msgs})
+    except Exception as e:
+        print("Gmail fetch error:", e)
+        return jsonify({"connected": True, "messages": [], "error": str(e)})
 
 @app.route('/api/version', methods=['GET'])
 def get_version():
