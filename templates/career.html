@@ -357,7 +357,7 @@ async function loadGmailCard(){
       return;
     }
     dot.classList.add('on');
-    sub.innerHTML = `Connected as <b>${status.email}</b>. Showing employer replies (interviews, application status, offers) — LinkedIn/Indeed job-alert noise filtered out.<span class="gmail-filter-tag">filter · last 45 days</span>`;
+    sub.innerHTML = `Connected as <b>${status.email}</b>. Showing employer replies (interviews, application status, offers) — LinkedIn/Indeed job-alert noise and known marketing senders filtered out.<span class="gmail-filter-tag">filter · last 60 days</span>`;
     body.innerHTML = `
       <div class="lead-actions" style="margin-bottom:12px">
         <button class="btn btn-cal" onclick="loadGmailInbox()">🔄 Refresh</button>
