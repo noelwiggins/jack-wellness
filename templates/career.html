@@ -104,6 +104,35 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .gmail-msg-link{font-size:10px;color:var(--green);text-decoration:none;font-family:'JetBrains Mono',monospace;margin-top:4px;display:inline-block}
 .gmail-empty{font-size:11.5px;color:var(--text3);text-align:center;padding:16px 0}
 
+.filter-edit-toggle{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;cursor:pointer;text-decoration:underline;margin-bottom:8px;display:inline-block}
+.filter-edit-box{margin-top:6px;margin-bottom:12px}
+.filter-edit-box textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.5;resize:vertical;min-height:80px}
+.filter-edit-box textarea:focus{outline:none;border-color:var(--green3)}
+.filter-edit-actions{display:flex;gap:8px;margin-top:6px}
+.filter-status{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:6px}
+
+.spotify-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:18px}
+.spotify-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;user-select:none}
+.spotify-icon{font-size:20px}
+.spotify-title{font-size:14px;font-weight:700;color:var(--text);flex:1}
+.spotify-dot{width:8px;height:8px;border-radius:50%;background:var(--text3)}
+.spotify-dot.on{background:#1DB954;box-shadow:0 0 6px #1DB954}
+.spotify-sub{font-size:11px;color:var(--text3);margin-bottom:4px;line-height:1.5}
+.now-playing{display:flex;gap:12px;align-items:center;background:var(--bg3);border-radius:12px;padding:10px;margin-bottom:12px}
+.now-playing-art{width:52px;height:52px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--border)}
+.now-playing-info{flex:1;min-width:0}
+.now-playing-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.now-playing-artist{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player-controls{display:flex;gap:8px;margin-bottom:14px}
+.player-btn{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer;color:var(--text)}
+.player-btn:hover{border-color:#1DB954}
+.recent-track{display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+.recent-track:last-child{border-bottom:none}
+.recent-track-art{width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--bg3)}
+.recent-track-info{flex:1;min-width:0}
+.recent-track-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recent-track-artist{font-size:10.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 .chevron{font-size:12px;color:var(--text3);transition:transform .2s;flex-shrink:0}
 .chevron.open{transform:rotate(180deg)}
 .collapsible-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
@@ -146,6 +175,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 <nav class="nav">
   <button class="nav-back" onclick="window.location.href='/wellness'">🌿 WELLNESS</button>
   <div class="nav-logo">Career Office</div>
+  <button class="nav-back" onclick="window.location.href='/documents'">📁 DOCS</button>
 </nav>
 
 <div class="wrap">
@@ -177,6 +207,19 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
     <div class="gmail-sub" id="gmailSub">Checking connection…</div>
     <div class="collapsible-body" id="gmail-collapsible">
       <div id="gmailBody"></div>
+    </div>
+  </div>
+
+  <div class="spotify-card" id="spotifyCard">
+    <div class="spotify-head" onclick="toggleCollapse('spotify-collapsible')">
+      <span class="spotify-icon">🎵</span>
+      <span class="spotify-title">Spotify</span>
+      <span class="spotify-dot" id="spotifyDot"></span>
+      <span class="chevron" id="spotify-collapsible-chevron">▾</span>
+    </div>
+    <div class="spotify-sub" id="spotifySub">Checking connection…</div>
+    <div class="collapsible-body" id="spotify-collapsible">
+      <div id="spotifyBody"></div>
     </div>
   </div>
 
@@ -435,16 +478,72 @@ async function loadGmailCard(){
     dot.classList.add('on');
     sub.innerHTML = `Connected as <b>${status.email}</b> — tap to view filtered replies.`;
     body.innerHTML = `
-      <div class="gmail-sub" style="margin-bottom:10px">Showing employer replies (interviews, application status, offers) — LinkedIn/Indeed job-alert noise and known marketing senders filtered out.<span class="gmail-filter-tag">filter · last 60 days</span></div>
+      <div class="gmail-sub" style="margin-bottom:6px">Showing employer replies (interviews, application status, offers) — LinkedIn/Indeed job-alert noise and known marketing senders filtered out.<span class="gmail-filter-tag">filter · last 60 days</span></div>
+      <span class="filter-edit-toggle" onclick="event.stopPropagation(); toggleFilterEditor()">✏️ Edit filter</span>
+      <div class="filter-edit-box" id="filterEditBox" style="display:none">
+        <textarea id="filterQueryInput" placeholder="Gmail search syntax, e.g. subject:(interview) OR from:(company.com)"></textarea>
+        <div class="filter-edit-actions">
+          <button class="btn btn-cal" onclick="saveGmailFilter()">💾 Save Filter</button>
+          <button class="btn btn-cal" onclick="resetGmailFilter()">↺ Reset to Default</button>
+        </div>
+        <div class="filter-status" id="filterSaveStatus"></div>
+      </div>
       <div class="lead-actions" style="margin-bottom:12px">
         <button class="btn btn-cal" onclick="loadGmailInbox()">🔄 Refresh</button>
         <button class="btn btn-cal" onclick="disconnectGmail()">🔌 Disconnect</button>
       </div>
       <div id="gmailMessages"><div class="gmail-empty">Loading messages…</div></div>`;
     loadGmailInbox();
+    loadGmailFilterIntoEditor();
   }catch(e){
     document.getElementById('gmailSub').textContent = 'Could not check Gmail connection status.';
   }
+}
+
+function toggleFilterEditor(){
+  const box = document.getElementById('filterEditBox');
+  if(box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+async function loadGmailFilterIntoEditor(){
+  try{
+    const res = await fetch('/api/career/gmail-filter');
+    const data = await res.json();
+    const input = document.getElementById('filterQueryInput');
+    if(input) input.value = data.query;
+  }catch(e){}
+}
+
+async function saveGmailFilter(){
+  const input = document.getElementById('filterQueryInput');
+  const status = document.getElementById('filterSaveStatus');
+  if(!input || !input.value.trim()){
+    if(status) status.textContent = 'Query cannot be empty.';
+    return;
+  }
+  try{
+    await fetch('/api/career/gmail-filter', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({query: input.value.trim()})
+    });
+    if(status) status.textContent = '✓ Saved — refreshing results...';
+    loadGmailInbox();
+  }catch(e){
+    if(status) status.textContent = 'Could not save filter.';
+  }
+}
+
+async function resetGmailFilter(){
+  try{
+    const res = await fetch('/api/career/gmail-filter/reset', {method:'POST'});
+    const data = await res.json();
+    const input = document.getElementById('filterQueryInput');
+    if(input) input.value = data.query;
+    const status = document.getElementById('filterSaveStatus');
+    if(status) status.textContent = '✓ Reset to default — refreshing results...';
+    loadGmailInbox();
+  }catch(e){}
 }
 
 async function loadGmailInbox(){
@@ -478,6 +577,107 @@ async function loadGmailInbox(){
 async function disconnectGmail(){
   await fetch('/api/career/gmail-disconnect', {method:'POST'});
   loadGmailCard();
+}
+
+// ---- Spotify ----
+async function loadSpotifyCard(){
+  try{
+    const res = await fetch('/api/career/spotify-status');
+    const status = await res.json();
+    const dot = document.getElementById('spotifyDot');
+    const sub = document.getElementById('spotifySub');
+    const body = document.getElementById('spotifyBody');
+
+    if(!status.configured){
+      dot.classList.remove('on');
+      sub.innerHTML = `Not set up yet — tap to see setup steps.`;
+      body.innerHTML = `<div class="gmail-empty">Add <b>SPOTIFY_CLIENT_ID</b>, <b>SPOTIFY_CLIENT_SECRET</b>, and <b>SPOTIFY_REDIRECT_URI</b> in Railway variables (from a Spotify Developer app), then reload.</div>
+        <button class="btn btn-cal" disabled>🔒 Connect Spotify (needs setup)</button>`;
+      return;
+    }
+    if(!status.connected){
+      dot.classList.remove('on');
+      sub.innerHTML = `Not connected yet — tap to connect.`;
+      body.innerHTML = `<div class="gmail-empty">Authorize your Spotify account to see listening stats and control playback.</div>
+        <button class="btn btn-call" onclick="window.location.href='/auth/spotify/connect'">🔗 Connect Spotify</button>`;
+      return;
+    }
+    dot.classList.add('on');
+    sub.innerHTML = `Connected as <b>${status.display_name}</b> — tap to view listening stats.`;
+    body.innerHTML = `
+      <div id="spotifyNowPlaying"></div>
+      <div class="player-controls">
+        <button class="player-btn" onclick="spotifyControl('previous')">⏮</button>
+        <button class="player-btn" onclick="spotifyControl('play')">▶️</button>
+        <button class="player-btn" onclick="spotifyControl('pause')">⏸</button>
+        <button class="player-btn" onclick="spotifyControl('next')">⏭</button>
+        <button class="btn btn-cal" onclick="loadSpotifyRecent()">🔄 Refresh</button>
+        <button class="btn btn-cal" onclick="disconnectSpotify()">🔌 Disconnect</button>
+      </div>
+      <div id="spotifyRecent"><div class="gmail-empty">Loading recent tracks…</div></div>`;
+    loadSpotifyRecent();
+  }catch(e){
+    document.getElementById('spotifySub').textContent = 'Could not check Spotify connection status.';
+  }
+}
+
+async function loadSpotifyRecent(){
+  const npContainer = document.getElementById('spotifyNowPlaying');
+  const recContainer = document.getElementById('spotifyRecent');
+  if(!recContainer) return;
+  try{
+    const res = await fetch('/api/career/spotify-recent');
+    const data = await res.json();
+    if(npContainer){
+      if(data.now_playing){
+        const np = data.now_playing;
+        npContainer.innerHTML = `
+          <div class="now-playing">
+            ${np.album_art ? `<img class="now-playing-art" src="${esc(np.album_art)}">` : ''}
+            <div class="now-playing-info">
+              <div class="now-playing-name">${esc(np.name)}</div>
+              <div class="now-playing-artist">${esc(np.artist)} ${np.is_playing ? '· ▶️ Playing' : '· ⏸ Paused'}</div>
+            </div>
+          </div>`;
+      } else {
+        npContainer.innerHTML = '';
+      }
+    }
+    if(!data.recent || !data.recent.length){
+      recContainer.innerHTML = '<div class="gmail-empty">No recent listening history yet.</div>';
+      return;
+    }
+    recContainer.innerHTML = data.recent.map(t => `
+      <div class="recent-track">
+        ${t.album_art ? `<img class="recent-track-art" src="${esc(t.album_art)}">` : ''}
+        <div class="recent-track-info">
+          <div class="recent-track-name">${esc(t.name)}</div>
+          <div class="recent-track-artist">${esc(t.artist)}</div>
+        </div>
+      </div>`).join('');
+  }catch(e){
+    recContainer.innerHTML = '<div class="gmail-empty">Could not load listening history.</div>';
+  }
+}
+
+async function spotifyControl(action){
+  try{
+    const res = await fetch('/api/career/spotify-control', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action})
+    });
+    const data = await res.json();
+    if(data.error){
+      alert(data.error);
+    }
+    setTimeout(loadSpotifyRecent, 800);
+  }catch(e){}
+}
+
+async function disconnectSpotify(){
+  await fetch('/api/career/spotify-disconnect', {method:'POST'});
+  loadSpotifyCard();
 }
 
 // ---- Park Slope Job Map ----
@@ -565,6 +765,7 @@ async function togglePinVisited(id, checked){
 
 loadMapPins();
 loadGmailCard();
+loadSpotifyCard();
 loadLeads();
 </script>
 </body>

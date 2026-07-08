@@ -42,13 +42,15 @@ GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', 'https://jack-wellness.up.railway.app/auth/gmail/callback')
 GMAIL_TARGET_EMAIL = 'perrywigginsjack@gmail.com'
-JOB_FILTER_QUERY = (
-    '(subject:("thank you for applying" OR "thank you for your interest" OR '
-    '"your application for" OR "your application to" OR "regarding your application" OR '
-    '"update on your application" OR "interview invitation" OR "interview confirmation" OR '
-    '"we have received your application" OR "next steps in your application" OR '
-    '"regarding your candidacy" OR "schedule an interview" OR "invite you to interview" OR '
-    '"phone screen") OR '
+GOOGLE_OAUTH_SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/drive.readonly'
+DEFAULT_JOB_FILTER_QUERY = (
+    '(subject:("your application" OR "thank you for applying") OR '
+    'subject:("thank you for your interest") OR subject:("regarding your application") OR '
+    'subject:("update on your application") OR subject:("interview invitation") OR '
+    'subject:("interview confirmation") OR subject:("we have received your application") OR '
+    'subject:("next steps in your application") OR subject:("regarding your candidacy") OR '
+    'subject:("schedule an interview") OR subject:("invite you to interview") OR '
+    'subject:("phone screen") OR '
     'from:(safehorizon.org OR vibrant.org OR sanctuaryforfamilies.org OR '
     'myworkday.com OR greenhouse.io OR lever.co OR icims.com OR smartrecruiters.com OR '
     'workday.com OR ashbyhq.com OR indeedemail.com)) '
@@ -59,6 +61,11 @@ JOB_FILTER_QUERY = (
     'usnews.com) '
     'newer_than:60d'
 )
+
+SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID', '')
+SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET', '')
+SPOTIFY_REDIRECT_URI = os.environ.get('SPOTIFY_REDIRECT_URI', 'https://jack-wellness.up.railway.app/auth/spotify/callback')
+SPOTIFY_SCOPES = 'user-read-recently-played user-read-currently-playing user-read-playback-state user-modify-playback-state'
 
 def get_db():
     conn = psycopg.connect(DATABASE_URL)
@@ -138,6 +145,28 @@ def init_db():
         CREATE TABLE IF NOT EXISTS gmail_connection (
             id SERIAL PRIMARY KEY,
             email TEXT NOT NULL UNIQUE,
+            access_token TEXT,
+            refresh_token TEXT,
+            token_expiry TIMESTAMP,
+            connected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS app_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS spotify_connection (
+            id SERIAL PRIMARY KEY,
+            display_name TEXT,
             access_token TEXT,
             refresh_token TEXT,
             token_expiry TIMESTAMP,
@@ -803,7 +832,7 @@ def gmail_connect():
         'client_id': GOOGLE_CLIENT_ID,
         'redirect_uri': GOOGLE_REDIRECT_URI,
         'response_type': 'code',
-        'scope': 'https://www.googleapis.com/auth/gmail.readonly',
+        'scope': GOOGLE_OAUTH_SCOPES,
         'access_type': 'offline',
         'prompt': 'consent',
         'login_hint': GMAIL_TARGET_EMAIL,
@@ -878,6 +907,63 @@ def gmail_disconnect():
         print("Gmail disconnect error:", e)
     return jsonify({"ok": True})
 
+def get_setting(key, default=None):
+    try:
+        conn = get_db()
+        c = conn.cursor(row_factory=dict_row)
+        c.execute('SELECT value FROM app_settings WHERE key = %s', (key,))
+        row = c.fetchone()
+        conn.close()
+        return row['value'] if row else default
+    except Exception as e:
+        print("Settings read error:", e)
+        return default
+
+def set_setting(key, value):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO app_settings (key, value, updated_at) VALUES (%s, %s, CURRENT_TIMESTAMP)
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+    ''', (key, value))
+    conn.commit()
+    conn.close()
+
+def get_active_job_filter_query():
+    return get_setting('gmail_job_filter_query', DEFAULT_JOB_FILTER_QUERY)
+
+@app.route('/api/career/gmail-filter', methods=['GET'])
+@login_required
+def get_gmail_filter():
+    return jsonify({
+        "query": get_active_job_filter_query(),
+        "is_custom": get_setting('gmail_job_filter_query') is not None,
+        "default_query": DEFAULT_JOB_FILTER_QUERY,
+    })
+
+@app.route('/api/career/gmail-filter', methods=['POST'])
+@login_required
+def save_gmail_filter():
+    data = request.get_json(force=True) or {}
+    query = (data.get('query') or '').strip()
+    if not query:
+        return jsonify({"error": "query cannot be empty"}), 400
+    set_setting('gmail_job_filter_query', query)
+    return jsonify({"ok": True, "query": query})
+
+@app.route('/api/career/gmail-filter/reset', methods=['POST'])
+@login_required
+def reset_gmail_filter():
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM app_settings WHERE key = 'gmail_job_filter_query'")
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("Filter reset error:", e)
+    return jsonify({"ok": True, "query": DEFAULT_JOB_FILTER_QUERY})
+
 @app.route('/api/career/gmail-inbox', methods=['GET'])
 @login_required
 def gmail_inbox():
@@ -888,7 +974,7 @@ def gmail_inbox():
         list_res = requests.get(
             'https://gmail.googleapis.com/gmail/v1/users/me/messages',
             headers={'Authorization': f'Bearer {token}'},
-            params={'q': JOB_FILTER_QUERY, 'maxResults': 20},
+            params={'q': get_active_job_filter_query(), 'maxResults': 20},
             timeout=15
         )
         data = list_res.json()
@@ -916,6 +1002,243 @@ def gmail_inbox():
     except Exception as e:
         print("Gmail fetch error:", e)
         return jsonify({"connected": True, "messages": [], "error": str(e)})
+
+# ── DOCUMENTS (Google Drive) ──────────────────────────────
+
+DOC_KEYWORDS = ['passport', 'CV', 'resume', 'transcript', 'certificate', 'diploma',
+                'cover letter', "driver's license", 'license', 'ID card', 'social security',
+                'birth certificate', 'immunization', 'vaccination']
+
+@app.route('/documents')
+@login_required
+def documents_page():
+    return render_template('documents.html')
+
+@app.route('/api/career/documents', methods=['GET'])
+@login_required
+def get_documents():
+    token = get_valid_gmail_access_token()  # same Google account/token, now scoped for Drive too
+    if not token:
+        return jsonify({"connected": False, "files": []})
+    try:
+        name_clauses = " or ".join([f"name contains '{kw}'" for kw in DOC_KEYWORDS])
+        query = f"({name_clauses}) and trashed = false"
+        res = requests.get(
+            'https://www.googleapis.com/drive/v3/files',
+            headers={'Authorization': f'Bearer {token}'},
+            params={
+                'q': query,
+                'fields': 'files(id,name,mimeType,webViewLink,iconLink,modifiedTime,size)',
+                'orderBy': 'modifiedTime desc',
+                'pageSize': 30,
+            },
+            timeout=15
+        )
+        data = res.json()
+        if 'error' in data:
+            msg = data['error'].get('message', 'Drive API error')
+            needs_reauth = 'insufficient' in msg.lower() or 'scope' in msg.lower() or data['error'].get('code') == 403
+            return jsonify({"connected": True, "files": [], "error": msg, "needs_reauth": needs_reauth})
+        return jsonify({"connected": True, "files": data.get('files', [])})
+    except Exception as e:
+        print("Drive fetch error:", e)
+        return jsonify({"connected": True, "files": [], "error": str(e)})
+
+# ── SPOTIFY ────────────────────────────────────────────────
+
+def get_spotify_row():
+    try:
+        conn = get_db()
+        c = conn.cursor(row_factory=dict_row)
+        c.execute('SELECT * FROM spotify_connection ORDER BY id DESC LIMIT 1')
+        row = c.fetchone()
+        conn.close()
+        return row
+    except Exception as e:
+        print("Spotify DB error:", e)
+        return None
+
+def refresh_spotify_access_token(row):
+    if not row or not row.get('refresh_token'):
+        return None
+    try:
+        auth = (SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET)
+        res = requests.post('https://accounts.spotify.com/api/token', data={
+            'grant_type': 'refresh_token',
+            'refresh_token': row['refresh_token'],
+        }, auth=auth, timeout=15)
+        tok = res.json()
+        access_token = tok.get('access_token')
+        if not access_token:
+            return None
+        expiry = datetime.utcnow() + timedelta(seconds=tok.get('expires_in', 3600))
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('UPDATE spotify_connection SET access_token=%s, token_expiry=%s, updated_at=CURRENT_TIMESTAMP WHERE id=%s',
+                   (access_token, expiry, row['id']))
+        conn.commit()
+        conn.close()
+        return access_token
+    except Exception as e:
+        print("Spotify refresh error:", e)
+        return None
+
+def get_valid_spotify_access_token():
+    row = get_spotify_row()
+    if not row:
+        return None
+    expiry = row.get('token_expiry')
+    if expiry and expiry > datetime.utcnow() + timedelta(seconds=60):
+        return row['access_token']
+    return refresh_spotify_access_token(row)
+
+@app.route('/auth/spotify/connect')
+@login_required
+def spotify_connect():
+    if not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET:
+        return ("Spotify integration isn't configured yet. In Railway → jack-wellness → Variables, "
+                "add SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and SPOTIFY_REDIRECT_URI "
+                "(from a Spotify Developer app), then reload this page."), 200
+    state = secrets.token_urlsafe(16)
+    session['spotify_oauth_state'] = state
+    params = {
+        'client_id': SPOTIFY_CLIENT_ID,
+        'response_type': 'code',
+        'redirect_uri': SPOTIFY_REDIRECT_URI,
+        'scope': SPOTIFY_SCOPES,
+        'state': state,
+    }
+    return redirect('https://accounts.spotify.com/authorize?' + urlencode(params))
+
+@app.route('/auth/spotify/callback')
+@login_required
+def spotify_callback():
+    code = request.args.get('code')
+    state = request.args.get('state')
+    if not code or state != session.get('spotify_oauth_state'):
+        return redirect(url_for('index'))
+    try:
+        token_res = requests.post('https://accounts.spotify.com/api/token', data={
+            'grant_type': 'authorization_code',
+            'code': code,
+            'redirect_uri': SPOTIFY_REDIRECT_URI,
+            'client_id': SPOTIFY_CLIENT_ID,
+            'client_secret': SPOTIFY_CLIENT_SECRET,
+        }, timeout=15)
+        tok = token_res.json()
+        access_token = tok.get('access_token')
+        refresh_token = tok.get('refresh_token')
+        expires_in = tok.get('expires_in', 3600)
+        display_name = 'Spotify User'
+        try:
+            me = requests.get('https://api.spotify.com/v1/me',
+                               headers={'Authorization': f'Bearer {access_token}'}, timeout=10).json()
+            display_name = me.get('display_name') or display_name
+        except Exception:
+            pass
+        expiry = datetime.utcnow() + timedelta(seconds=expires_in)
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('DELETE FROM spotify_connection')
+        c.execute('''
+            INSERT INTO spotify_connection (display_name, access_token, refresh_token, token_expiry)
+            VALUES (%s,%s,%s,%s)
+        ''', (display_name, access_token, refresh_token, expiry))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("Spotify callback error:", e)
+    return redirect(url_for('index'))
+
+@app.route('/api/career/spotify-status', methods=['GET'])
+@login_required
+def spotify_status():
+    row = get_spotify_row()
+    return jsonify({
+        "configured": bool(SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET),
+        "connected": bool(row),
+        "display_name": row['display_name'] if row else None,
+    })
+
+@app.route('/api/career/spotify-disconnect', methods=['POST'])
+@login_required
+def spotify_disconnect():
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('DELETE FROM spotify_connection')
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("Spotify disconnect error:", e)
+    return jsonify({"ok": True})
+
+@app.route('/api/career/spotify-recent', methods=['GET'])
+@login_required
+def spotify_recent():
+    token = get_valid_spotify_access_token()
+    if not token:
+        return jsonify({"connected": False})
+    try:
+        headers = {'Authorization': f'Bearer {token}'}
+        now_playing = None
+        np_res = requests.get('https://api.spotify.com/v1/me/player/currently-playing', headers=headers, timeout=15)
+        if np_res.status_code == 200 and np_res.text:
+            npd = np_res.json()
+            item = npd.get('item')
+            if item:
+                now_playing = {
+                    "name": item.get('name'),
+                    "artist": ", ".join(a['name'] for a in item.get('artists', [])),
+                    "album_art": (item.get('album', {}).get('images') or [{}])[0].get('url'),
+                    "is_playing": npd.get('is_playing', False),
+                    "url": item.get('external_urls', {}).get('spotify'),
+                }
+        recent_res = requests.get('https://api.spotify.com/v1/me/player/recently-played',
+                                   headers=headers, params={'limit': 10}, timeout=15)
+        recent = []
+        if recent_res.status_code == 200:
+            for item in recent_res.json().get('items', []):
+                track = item.get('track', {})
+                recent.append({
+                    "name": track.get('name'),
+                    "artist": ", ".join(a['name'] for a in track.get('artists', [])),
+                    "album_art": (track.get('album', {}).get('images') or [{}])[0].get('url'),
+                    "played_at": item.get('played_at'),
+                    "url": track.get('external_urls', {}).get('spotify'),
+                })
+        return jsonify({"connected": True, "now_playing": now_playing, "recent": recent})
+    except Exception as e:
+        print("Spotify recent error:", e)
+        return jsonify({"connected": True, "now_playing": None, "recent": [], "error": str(e)})
+
+@app.route('/api/career/spotify-control', methods=['POST'])
+@login_required
+def spotify_control():
+    token = get_valid_spotify_access_token()
+    if not token:
+        return jsonify({"error": "not connected"}), 400
+    data = request.get_json(force=True) or {}
+    action = data.get('action')
+    headers = {'Authorization': f'Bearer {token}'}
+    try:
+        if action == 'play':
+            r = requests.put('https://api.spotify.com/v1/me/player/play', headers=headers, timeout=10)
+        elif action == 'pause':
+            r = requests.put('https://api.spotify.com/v1/me/player/pause', headers=headers, timeout=10)
+        elif action == 'next':
+            r = requests.post('https://api.spotify.com/v1/me/player/next', headers=headers, timeout=10)
+        elif action == 'previous':
+            r = requests.post('https://api.spotify.com/v1/me/player/previous', headers=headers, timeout=10)
+        else:
+            return jsonify({"error": "unknown action"}), 400
+        if r.status_code == 204:
+            return jsonify({"ok": True})
+        if r.status_code == 404:
+            return jsonify({"error": "No active Spotify device found. Open Spotify on your phone/computer first."}), 200
+        return jsonify({"error": f"Spotify returned {r.status_code}"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/version', methods=['GET'])
 def get_version():
