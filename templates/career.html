@@ -74,7 +74,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .save-status{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:5px;height:12px;letter-spacing:.3px}
 .save-status.saved{color:var(--green)}
 
-.dialer-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.dialer-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:6000;display:none;align-items:flex-end;justify-content:center}
 .dialer-modal.open{display:flex}
 .dialer-sheet{background:var(--card2);border:1px solid var(--border2);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:420px;animation:slideUp .2s ease}
 @keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -131,7 +131,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .search-row input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px}
 .search-row input:focus{outline:none;border-color:var(--green3)}
 
-.spotify-panel{position:fixed;top:56px;left:0;right:0;background:var(--card2);border-bottom:1px solid var(--border2);box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:150;max-height:0;overflow:hidden;transition:max-height .3s ease}
+.spotify-panel{position:fixed;top:56px;left:0;right:0;background:var(--card2);border-bottom:1px solid var(--border2);box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:5000;max-height:0;overflow:hidden;transition:max-height .3s ease}
 .spotify-panel.open{max-height:80vh;overflow-y:auto}
 .spotify-panel-inner{padding:16px;max-width:680px;margin:0 auto}
 .spotify-panel-close{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 6px}
