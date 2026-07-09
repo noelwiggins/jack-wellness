@@ -1034,7 +1034,9 @@ def get_documents():
     if not token:
         return jsonify({"connected": False, "files": []})
     try:
-        name_clauses = " or ".join([f"name contains '{kw}'" for kw in DOC_KEYWORDS])
+        def escape_drive_query(s):
+            return s.replace("\\", "\\\\").replace("'", "\\'")
+        name_clauses = " or ".join([f"name contains '{escape_drive_query(kw)}'" for kw in DOC_KEYWORDS])
         query = f"({name_clauses}) and trashed = false"
         res = requests.get(
             'https://www.googleapis.com/drive/v3/files',
