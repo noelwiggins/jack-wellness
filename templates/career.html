@@ -113,6 +113,13 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .filter-status.error{color:var(--red)}
 .filter-status.success{color:var(--green)}
 
+.mode-toggle{display:flex;gap:6px;margin-bottom:10px;background:var(--bg3);border-radius:10px;padding:4px}
+.mode-btn{flex:1;background:none;border:none;border-radius:8px;padding:8px 6px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text3);cursor:pointer;transition:all .15s}
+.mode-btn.active{background:var(--card2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.search-row{display:flex;gap:8px}
+.search-row input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px}
+.search-row input:focus{outline:none;border-color:var(--green3)}
+
 .spotify-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:18px}
 .spotify-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;user-select:none}
 .spotify-icon{font-size:20px}
@@ -478,12 +485,20 @@ async function loadGmailCard(){
       return;
     }
     dot.classList.add('on');
-    sub.innerHTML = `Connected as <b>${status.email}</b> — tap to view filtered replies.`;
+    gmailMode = 'filtered';
+    gmailSearchTerm = '';
+    sub.innerHTML = `Connected as <b>${status.email}</b> — tap to view.`;
     body.innerHTML = `
-      <div class="gmail-sub" style="margin-bottom:6px">Showing employer replies (interviews, application status, offers) — LinkedIn/Indeed job-alert noise and known marketing senders filtered out.<span class="gmail-filter-tag">filter · last 60 days</span></div>
-      <span class="filter-edit-toggle" onclick="event.stopPropagation(); toggleFilterEditor()">✏️ Edit filter</span>
+      <div class="mode-toggle" id="gmailModeToggle">
+        <button class="mode-btn" data-mode="all" onclick="switchGmailMode('all')">📥 All</button>
+        <button class="mode-btn active" data-mode="filtered" onclick="switchGmailMode('filtered')">🎯 Filtered</button>
+        <button class="mode-btn" data-mode="search" onclick="switchGmailMode('search')">🔍 Search</button>
+      </div>
+
+      <div class="gmail-sub" id="filteredModeInfo" style="margin-bottom:6px">Showing employer replies (interviews, application status, offers) — LinkedIn/Indeed job-alert noise and known marketing senders filtered out.<span class="gmail-filter-tag">filter · last 60 days</span></div>
+      <span class="filter-edit-toggle" id="filteredModeEditToggle" onclick="event.stopPropagation(); toggleFilterEditor()">✏️ Edit filter</span>
       <div class="filter-edit-box" id="filterEditBox" style="display:none">
-        <div class="gmail-empty" style="text-align:left;padding:0 0 8px 0">Uses real Gmail search syntax (same as the Gmail search bar). Can't be empty — to broaden results, try something like <code>newer_than:30d</code> instead of clearing it entirely.</div>
+        <div class="gmail-empty" style="text-align:left;padding:0 0 8px 0">Uses real Gmail search syntax (same as the Gmail search bar). Can't be empty — to broaden results, try something like <code>newer_than:30d</code> instead of clearing it entirely, or use the "All" / "Search" tabs above.</div>
         <textarea id="filterQueryInput" placeholder="Gmail search syntax, e.g. subject:(interview) OR from:(company.com)"></textarea>
         <div class="filter-edit-actions">
           <button class="btn btn-cal" onclick="saveGmailFilter()">💾 Save Filter</button>
@@ -491,6 +506,17 @@ async function loadGmailCard(){
         </div>
         <div class="filter-status" id="filterSaveStatus"></div>
       </div>
+
+      <div class="gmail-sub" id="allModeInfo" style="margin-bottom:10px;display:none">Showing the most recent inbox messages, unfiltered.</div>
+
+      <div id="searchModeBox" style="display:none;margin-bottom:10px">
+        <div class="search-row">
+          <input type="text" id="gmailSearchInput" placeholder="e.g. from:safehorizon.org OR interview" onkeydown="if(event.key==='Enter') runGmailSearch()">
+          <button class="btn btn-call" onclick="runGmailSearch()">Go</button>
+        </div>
+        <div class="gmail-empty" style="text-align:left;padding:6px 0 0 0">Real Gmail search syntax — any term, sender, or subject.</div>
+      </div>
+
       <div class="lead-actions" style="margin-bottom:12px">
         <button class="btn btn-cal" onclick="loadGmailInbox()">🔄 Refresh</button>
         <button class="btn btn-cal" onclick="disconnectGmail()">🔌 Disconnect</button>
@@ -550,19 +576,62 @@ async function resetGmailFilter(){
   }catch(e){}
 }
 
+let gmailMode = 'filtered';
+let gmailSearchTerm = '';
+
+function switchGmailMode(mode){
+  gmailMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  const filteredInfo = document.getElementById('filteredModeInfo');
+  const filteredEditToggle = document.getElementById('filteredModeEditToggle');
+  const filterBox = document.getElementById('filterEditBox');
+  const allInfo = document.getElementById('allModeInfo');
+  const searchBox = document.getElementById('searchModeBox');
+
+  if(filteredInfo) filteredInfo.style.display = mode === 'filtered' ? 'block' : 'none';
+  if(filteredEditToggle) filteredEditToggle.style.display = mode === 'filtered' ? 'inline-block' : 'none';
+  if(filterBox && mode !== 'filtered') filterBox.style.display = 'none';
+  if(allInfo) allInfo.style.display = mode === 'all' ? 'block' : 'none';
+  if(searchBox) searchBox.style.display = mode === 'search' ? 'block' : 'none';
+
+  if(mode !== 'search'){
+    loadGmailInbox();
+  } else {
+    const container = document.getElementById('gmailMessages');
+    if(container) container.innerHTML = '<div class="gmail-empty">Type a search term above and tap Go.</div>';
+  }
+}
+
+function runGmailSearch(){
+  const input = document.getElementById('gmailSearchInput');
+  gmailSearchTerm = input ? input.value.trim() : '';
+  loadGmailInbox();
+}
+
 async function loadGmailInbox(){
   const container = document.getElementById('gmailMessages');
   if(!container) return;
+  if(gmailMode === 'search' && !gmailSearchTerm){
+    container.innerHTML = '<div class="gmail-empty">Type a search term above and tap Go.</div>';
+    return;
+  }
   container.innerHTML = '<div class="gmail-empty">Loading messages…</div>';
   try{
-    const res = await fetch('/api/career/gmail-inbox');
+    const params = new URLSearchParams({mode: gmailMode});
+    if(gmailMode === 'search') params.set('q', gmailSearchTerm);
+    const res = await fetch('/api/career/gmail-inbox?' + params.toString());
     const data = await res.json();
     if(data.error){
-      container.innerHTML = `<div class="gmail-empty">Error: ${esc(data.error)}</div>`;
+      container.innerHTML = `<div class="gmail-empty">${esc(data.error)}</div>`;
       return;
     }
     if(!data.messages || !data.messages.length){
-      container.innerHTML = '<div class="gmail-empty">No job-related emails matched the filter yet.</div>';
+      const emptyMsg = gmailMode === 'all' ? 'No recent inbox messages found.'
+        : gmailMode === 'search' ? 'No messages matched that search.'
+        : 'No job-related emails matched the filter yet.';
+      container.innerHTML = `<div class="gmail-empty">${emptyMsg}</div>`;
       return;
     }
     container.innerHTML = data.messages.map(m => `

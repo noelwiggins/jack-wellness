@@ -970,18 +970,31 @@ def gmail_inbox():
     token = get_valid_gmail_access_token()
     if not token:
         return jsonify({"connected": False, "messages": []})
+
+    mode = request.args.get('mode', 'filtered')
+    search_term = request.args.get('q', '').strip()
+
+    if mode == 'all':
+        query = 'in:inbox'
+    elif mode == 'search':
+        if not search_term:
+            return jsonify({"connected": True, "messages": [], "error": "Enter a search term first."})
+        query = search_term
+    else:
+        query = get_active_job_filter_query()
+
     try:
         list_res = requests.get(
             'https://gmail.googleapis.com/gmail/v1/users/me/messages',
             headers={'Authorization': f'Bearer {token}'},
-            params={'q': get_active_job_filter_query(), 'maxResults': 20},
+            params={'q': query, 'maxResults': 25},
             timeout=15
         )
         data = list_res.json()
         if 'error' in data:
             return jsonify({"connected": True, "messages": [], "error": data['error'].get('message', 'Gmail API error')})
         msgs = []
-        for m in data.get('messages', [])[:20]:
+        for m in data.get('messages', [])[:25]:
             detail = requests.get(
                 f'https://gmail.googleapis.com/gmail/v1/users/me/messages/{m["id"]}',
                 headers={'Authorization': f'Bearer {token}'},
@@ -998,7 +1011,7 @@ def gmail_inbox():
                 "snippet": detail.get('snippet', ''),
                 "link": f"https://mail.google.com/mail/u/0/#inbox/{m['id']}",
             })
-        return jsonify({"connected": True, "messages": msgs})
+        return jsonify({"connected": True, "messages": msgs, "mode": mode})
     except Exception as e:
         print("Gmail fetch error:", e)
         return jsonify({"connected": True, "messages": [], "error": str(e)})
