@@ -9,20 +9,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 :root {
-  --bg:#0D1410;--bg2:#111815;--bg3:#161E18;
-  --card:#1A241C;--card2:#1F2B21;
-  --border:#2A3D2C;--border2:#344D36;
-  --green:#4CAF6B;--green2:#3D9558;--green3:#2A6B3E;
-  --green-glow:rgba(76,175,107,0.15);
-  --amber:#E8A84A;--amber2:#C8853A;
-  --amber-glow:rgba(232,168,74,0.12);
-  --red:#E05050;--red2:#B83030;
-  --blue:#5BA8D8;--blue-glow:rgba(91,168,216,.15);
-  --text:#E8F0E9;--text2:#9BB09D;--text3:#6A8A6C;
+  --bg:#F6F9F6;--bg2:#FFFFFF;--bg3:#EEF4EF;
+  --card:#FFFFFF;--card2:#F2F7F3;
+  --border:#DCE7DD;--border2:#C2D6C4;
+  --green:#2E8B4F;--green2:#26703F;--green3:#1E5A32;
+  --green-glow:rgba(46,139,79,0.12);
+  --amber:#B8792A;--amber2:#96611F;
+  --amber-glow:rgba(184,121,42,0.12);
+  --red:#C1392B;--red2:#9C2E22;
+  --blue:#2570A8;--blue-glow:rgba(37,112,168,.12);
+  --text:#1A2A1D;--text2:#44594A;--text3:#6F8573;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden}
-.nav{position:sticky;top:0;z-index:100;background:rgba(13,20,16,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:10px;height:56px}
+.nav{position:sticky;top:0;z-index:100;background:rgba(246,249,246,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:10px;height:56px}
 .nav-logo{font-family:'Playfair Display',serif;font-style:italic;font-size:18px;color:var(--green);flex:1;letter-spacing:-.3px}
 .nav-back{background:none;border:1px solid var(--border2);color:var(--text2);border-radius:8px;padding:6px 12px;font-size:11px;font-family:'JetBrains Mono',monospace;cursor:pointer;letter-spacing:.3px}
 .nav-back:hover{color:var(--green);border-color:var(--green3)}
@@ -65,7 +65,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 
 .date-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .date-field label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-family:'JetBrains Mono',monospace;display:block;margin-bottom:4px}
-.date-field input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;color-scheme:dark}
+.date-field input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;color-scheme:light}
 .date-field input:focus{outline:none;border-color:var(--green3)}
 
 .notes-field label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-family:'JetBrains Mono',monospace;display:block;margin-bottom:4px}
@@ -200,6 +200,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
   <button class="nav-back" onclick="window.location.href='/wellness'">🌿 WELLNESS</button>
   <div class="nav-logo">Career Office</div>
   <button class="nav-back" onclick="toggleSpotifyPanel()">🎵 SPOTIFY</button>
+  <button class="nav-back" onclick="window.location.href='/videos'">🎬 VIDEOS</button>
   <button class="nav-back" onclick="window.location.href='/documents'">📁 DOCS</button>
 </nav>
 

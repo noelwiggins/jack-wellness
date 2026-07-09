@@ -186,6 +186,37 @@ def init_db():
     conn.commit()
 
     c.execute('''
+        CREATE TABLE IF NOT EXISTS career_resources (
+            id SERIAL PRIMARY KEY,
+            resource_type TEXT NOT NULL DEFAULT 'video',
+            title TEXT NOT NULL,
+            url TEXT NOT NULL,
+            synopsis TEXT,
+            sort_order INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+
+    c.execute('SELECT COUNT(*) FROM career_resources')
+    if c.fetchone()[0] == 0:
+        resources = [
+            ('video', 'The Worst Disease of the Mind You Must Avoid',
+             'https://youtu.be/qTk2DjGLWoU',
+             "Chase Hughes on what he calls the most dangerous mindset — staying mentally anchored to the past — and how it quietly undermines growth, decision-making, and forward momentum. Useful framing for approaching a job search from a forward-looking mindset rather than getting stuck on past setbacks or rejections.",
+             1),
+            ('video', "Your Brain Won't Let You Change — Until This Happens",
+             'https://youtu.be/qB3lpAS9Usw',
+             "Chase Hughes explains why willpower alone doesn't produce lasting change — goals fail not from lack of discipline but from being aimed at the wrong target — and what has to shift before new habits or goals actually stick. Relevant for staying motivated and realistic through a job search.",
+             2),
+        ]
+        c.executemany('''
+            INSERT INTO career_resources (resource_type, title, url, synopsis, sort_order)
+            VALUES (%s,%s,%s,%s,%s)
+        ''', resources)
+        conn.commit()
+
+    c.execute('''
         CREATE TABLE IF NOT EXISTS job_map_pins (
             id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
@@ -1168,6 +1199,76 @@ def get_active_doc_query():
 @login_required
 def documents_page():
     return render_template('documents.html')
+
+@app.route('/videos')
+@login_required
+def videos_page():
+    return render_template('videos.html')
+
+def extract_youtube_id(url):
+    import re as _re
+    m = _re.search(r'(?:youtu\.be/|youtube\.com/watch\?v=|youtube\.com/embed/)([A-Za-z0-9_-]{11})', url or '')
+    return m.group(1) if m else None
+
+@app.route('/api/career/resources', methods=['GET'])
+@login_required
+def get_resources():
+    try:
+        conn = get_db()
+        c = conn.cursor(row_factory=dict_row)
+        c.execute('SELECT * FROM career_resources ORDER BY sort_order ASC, id ASC')
+        rows = c.fetchall()
+        conn.close()
+        for r in rows:
+            r['youtube_id'] = extract_youtube_id(r['url']) if r['resource_type'] == 'video' else None
+        return jsonify(rows)
+    except Exception as e:
+        print("Resources DB error:", e)
+        return jsonify([]), 500
+
+@app.route('/api/career/resources', methods=['POST'])
+@login_required
+def add_resource():
+    data = request.get_json(force=True) or {}
+    resource_type = (data.get('resource_type') or 'video').strip()
+    title = (data.get('title') or '').strip()
+    url = (data.get('url') or '').strip()
+    synopsis = (data.get('synopsis') or '').strip()
+    if not title or not url:
+        return jsonify({"error": "Title and URL are required."}), 400
+    if resource_type not in ('video', 'doc'):
+        resource_type = 'video'
+    try:
+        conn = get_db()
+        c = conn.cursor(row_factory=dict_row)
+        c.execute('SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM career_resources')
+        next_order = c.fetchone()['next_order']
+        c.execute('''
+            INSERT INTO career_resources (resource_type, title, url, synopsis, sort_order)
+            VALUES (%s,%s,%s,%s,%s) RETURNING *
+        ''', (resource_type, title, url, synopsis, next_order))
+        row = c.fetchone()
+        conn.commit()
+        conn.close()
+        row['youtube_id'] = extract_youtube_id(row['url']) if row['resource_type'] == 'video' else None
+        return jsonify(row)
+    except Exception as e:
+        print("Add resource error:", e)
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/career/resources/<int:resource_id>', methods=['DELETE'])
+@login_required
+def delete_resource(resource_id):
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('DELETE FROM career_resources WHERE id = %s', (resource_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({"ok": True})
+    except Exception as e:
+        print("Delete resource error:", e)
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/career/documents-filter', methods=['GET'])
 @login_required
