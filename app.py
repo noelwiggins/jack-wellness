@@ -761,6 +761,43 @@ def get_career_leads():
         print("DB error:", e)
         return jsonify([]), 500
 
+@app.route('/api/career/leads', methods=['POST'])
+@login_required
+def create_career_lead():
+    data = request.get_json(force=True) or {}
+    category = (data.get('category') or '').strip()
+    org_name = (data.get('org_name') or '').strip()
+    if not category or not org_name:
+        return jsonify({"error": "Category and organization name are required."}), 400
+    try:
+        conn = get_db()
+        c = conn.cursor(row_factory=dict_row)
+        c.execute('SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM career_leads')
+        next_order = c.fetchone()['next_order']
+        c.execute('''
+            INSERT INTO career_leads
+                (category, org_name, role_title, website, apply_url, phone, pay_range, info, contact_email, sort_order)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            RETURNING *
+        ''', (
+            category, org_name,
+            (data.get('role_title') or '').strip() or None,
+            (data.get('website') or '').strip() or None,
+            (data.get('apply_url') or '').strip() or None,
+            (data.get('phone') or '').strip() or None,
+            (data.get('pay_range') or '').strip() or None,
+            (data.get('info') or '').strip() or None,
+            (data.get('contact_email') or '').strip() or None,
+            next_order
+        ))
+        row = c.fetchone()
+        conn.commit()
+        conn.close()
+        return jsonify(row)
+    except Exception as e:
+        print("Create lead error:", e)
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/career/leads/<int:lead_id>', methods=['POST'])
 @login_required
 def update_career_lead(lead_id):

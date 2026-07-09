@@ -32,6 +32,20 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .page-title{font-family:'Playfair Display',serif;font-style:italic;font-size:26px;color:var(--text);margin-bottom:4px}
 .page-sub{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:.3px}
 
+.add-prospect-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px}
+.add-prospect-head{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.add-prospect-title{font-size:14px;font-weight:700;color:var(--text);flex:1}
+.add-field{margin-bottom:10px}
+.add-field label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-family:'JetBrains Mono',monospace;display:block;margin-bottom:4px}
+.add-field input,.add-field textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--text);font-family:'Nunito',sans-serif;font-size:13px}
+.add-field textarea{min-height:60px;resize:vertical;line-height:1.5}
+.add-field input:focus,.add-field textarea:focus{outline:none;border-color:var(--green3)}
+.add-field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.add-prospect-status{font-size:10.5px;font-family:'JetBrains Mono',monospace;margin-top:8px;min-height:14px;font-weight:700}
+.add-prospect-status.error{color:var(--red)}
+.add-prospect-status.success{color:var(--green)}
+.datalist-hint{font-size:9px;color:var(--text3);margin-top:2px}
+
 .progress-strip{display:flex;gap:8px;margin-bottom:16px}
 .progress-pill{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center}
 .progress-pill-num{font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--green);font-weight:500}
@@ -249,6 +263,59 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
     </div>
   </div>
 
+  <div class="add-prospect-card">
+    <div class="add-prospect-head" onclick="toggleCollapse('addProspectBody')">
+      <span class="add-prospect-title">➕ Add a new prospect</span>
+      <span class="chevron" id="addProspectBody-chevron">▾</span>
+    </div>
+    <div class="collapsible-body" id="addProspectBody">
+      <div class="add-field">
+        <label>Category</label>
+        <input type="text" id="newLeadCategory" list="categoryOptions" placeholder="e.g. Crisis & Clinical">
+        <datalist id="categoryOptions"></datalist>
+        <div class="datalist-hint">Pick an existing category or type a new one.</div>
+      </div>
+      <div class="add-field">
+        <label>Organization Name</label>
+        <input type="text" id="newLeadOrg" placeholder="e.g. Safe Horizon">
+      </div>
+      <div class="add-field">
+        <label>Role / Title</label>
+        <input type="text" id="newLeadRole" placeholder="e.g. Client Advocate Specialist">
+      </div>
+      <div class="add-field-row">
+        <div class="add-field">
+          <label>Website</label>
+          <input type="text" id="newLeadWebsite" placeholder="https://...">
+        </div>
+        <div class="add-field">
+          <label>Apply URL</label>
+          <input type="text" id="newLeadApplyUrl" placeholder="https://...">
+        </div>
+      </div>
+      <div class="add-field-row">
+        <div class="add-field">
+          <label>Phone</label>
+          <input type="text" id="newLeadPhone" placeholder="(212) 555-0100">
+        </div>
+        <div class="add-field">
+          <label>Contact Email</label>
+          <input type="email" id="newLeadEmail" placeholder="contact@org.com">
+        </div>
+      </div>
+      <div class="add-field">
+        <label>Pay Range</label>
+        <input type="text" id="newLeadPay" placeholder="e.g. $22\u2013$26/hr">
+      </div>
+      <div class="add-field">
+        <label>Notes / Info</label>
+        <textarea id="newLeadInfo" placeholder="What is this role, and why is it a good fit?"></textarea>
+      </div>
+      <button class="btn btn-call" onclick="submitNewLead()">💾 Add Prospect</button>
+      <div class="add-prospect-status" id="addProspectStatus"></div>
+    </div>
+  </div>
+
   <div class="progress-strip">
     <div class="progress-pill">
       <div class="progress-pill-num" id="statTotal">0</div>
@@ -343,7 +410,67 @@ function slugify(s){
   return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
 }
 
+function updateCategoryDatalist(){
+  const datalist = document.getElementById('categoryOptions');
+  if(!datalist) return;
+  const cats = [...new Set(LEADS.map(l=>l.category))];
+  datalist.innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
+}
+
+async function submitNewLead(){
+  const category = document.getElementById('newLeadCategory').value.trim();
+  const org_name = document.getElementById('newLeadOrg').value.trim();
+  const role_title = document.getElementById('newLeadRole').value.trim();
+  const website = document.getElementById('newLeadWebsite').value.trim();
+  const apply_url = document.getElementById('newLeadApplyUrl').value.trim();
+  const phone = document.getElementById('newLeadPhone').value.trim();
+  const contact_email = document.getElementById('newLeadEmail').value.trim();
+  const pay_range = document.getElementById('newLeadPay').value.trim();
+  const info = document.getElementById('newLeadInfo').value.trim();
+  const status = document.getElementById('addProspectStatus');
+
+  if(!category || !org_name){
+    status.textContent = '⚠ Category and organization name are required.';
+    status.className = 'add-prospect-status error';
+    return;
+  }
+
+  try{
+    const res = await fetch('/api/career/leads', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({category, org_name, role_title, website, apply_url, phone, contact_email, pay_range, info})
+    });
+    const data = await res.json();
+    if(!res.ok || data.error){
+      status.textContent = '✗ ' + (data.error || 'Could not add prospect.');
+      status.className = 'add-prospect-status error';
+      return;
+    }
+    status.textContent = '✓ Added!';
+    status.className = 'add-prospect-status success';
+    ['newLeadCategory','newLeadOrg','newLeadRole','newLeadWebsite','newLeadApplyUrl','newLeadPhone','newLeadEmail','newLeadPay','newLeadInfo'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    LEADS.push(data);
+    render();
+    const catId = 'cat-' + slugify(data.category);
+    setTimeout(() => {
+      const el = document.getElementById(catId);
+      const chevron = document.getElementById(catId + '-chevron');
+      if(el && !el.classList.contains('open')){
+        el.classList.add('open');
+        if(chevron) chevron.classList.add('open');
+      }
+    }, 50);
+  }catch(e){
+    status.textContent = '✗ Could not add prospect.';
+    status.className = 'add-prospect-status error';
+  }
+}
+
 function render(){
+  updateCategoryDatalist();
   const container = document.getElementById('leadsContainer');
   if(!LEADS.length){
     container.innerHTML = '<div class="empty-state">No leads yet.</div>';
