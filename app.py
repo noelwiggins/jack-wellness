@@ -798,6 +798,20 @@ def create_career_lead():
         print("Create lead error:", e)
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/career/leads/<int:lead_id>', methods=['DELETE'])
+@login_required
+def delete_career_lead(lead_id):
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('DELETE FROM career_leads WHERE id = %s', (lead_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({"ok": True})
+    except Exception as e:
+        print("Delete lead error:", e)
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/career/leads/<int:lead_id>', methods=['POST'])
 @login_required
 def update_career_lead(lead_id):

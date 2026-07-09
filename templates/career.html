@@ -67,14 +67,16 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 
 .lead-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .btn{border:none;border-radius:10px;padding:9px 12px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:.3px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;text-decoration:none;color:var(--text)}
-.btn-call{background:var(--green-glow);color:var(--green);border:1px solid rgba(76,175,107,.3)}
-.btn-call:hover{background:rgba(76,175,107,.25)}
-.btn-site{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(91,168,216,.3)}
-.btn-site:hover{background:rgba(91,168,216,.25)}
-.btn-apply{background:var(--amber-glow);color:var(--amber);border:1px solid rgba(232,168,74,.3)}
-.btn-apply:hover{background:rgba(232,168,74,.25)}
-.btn-cal{background:rgba(255,255,255,.06);color:var(--text2);border:1px solid var(--border2)}
+.btn-call{background:var(--green-glow);color:var(--green);border:1px solid rgba(46,139,79,.3)}
+.btn-call:hover{background:rgba(46,139,79,.2)}
+.btn-site{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(37,112,168,.3)}
+.btn-site:hover{background:rgba(37,112,168,.2)}
+.btn-apply{background:var(--amber-glow);color:var(--amber);border:1px solid rgba(184,121,42,.3)}
+.btn-apply:hover{background:rgba(184,121,42,.2)}
+.btn-cal{background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
 .btn-cal:hover{color:var(--text);border-color:var(--green3)}
+.btn-danger{background:rgba(193,57,43,.1);color:var(--red);border:1px solid rgba(193,57,43,.3)}
+.btn-danger:hover{background:rgba(193,57,43,.2)}
 .btn:disabled{opacity:.35;cursor:not-allowed}
 
 .date-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
@@ -521,6 +523,7 @@ function renderCard(lead){
       ${lead.website ? `<a class="btn btn-site" href="${esc(lead.website)}" target="_blank" rel="noopener">🌐 Website</a>` : ''}
       ${lead.apply_url ? `<a class="btn btn-apply" href="${esc(lead.apply_url)}" target="_blank" rel="noopener">📝 Apply</a>` : ''}
       <button class="btn btn-cal" onclick="addToCalendar(${lead.id})">📅 Add to Calendar</button>
+      <button class="btn btn-danger" onclick="deleteLead(${lead.id})">🗑 Remove</button>
     </div>
     <div class="date-row">
       <div class="date-field">
@@ -569,6 +572,19 @@ async function toggleChecked(id){
 async function updateField(id, field, value){
   await patchLead(id, {[field]: value});
   render();
+}
+
+async function deleteLead(id){
+  const lead = LEADS.find(l=>l.id===id);
+  if(!lead) return;
+  if(!confirm(`Remove "${lead.org_name}" from your prospects?`)) return;
+  try{
+    await fetch(`/api/career/leads/${id}`, {method: 'DELETE'});
+    LEADS = LEADS.filter(l => l.id !== id);
+    render();
+  }catch(e){
+    alert('Could not remove this prospect.');
+  }
 }
 
 function debounceNotes(id, value){
