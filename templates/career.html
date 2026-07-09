@@ -88,6 +88,17 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .dialer-call-btn{flex:1;background:var(--green);color:#0D1410;border:none;border-radius:14px;padding:14px;font-weight:800;font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:.5px;cursor:pointer;text-align:center;text-decoration:none;display:block}
 .dialer-close-btn{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);border-radius:14px;padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:13px;cursor:pointer}
 
+.email-sheet{max-height:85vh;overflow-y:auto;text-align:left}
+.email-field{margin-bottom:12px}
+.email-field label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-family:'JetBrains Mono',monospace;display:block;margin-bottom:4px}
+.email-field input,.email-field textarea,.email-field select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--text);font-family:'Nunito',sans-serif;font-size:13px}
+.email-field textarea{min-height:120px;resize:vertical;line-height:1.5}
+.email-field input:focus,.email-field textarea:focus,.email-field select:focus{outline:none;border-color:var(--green3)}
+.email-status{font-size:11px;font-family:'JetBrains Mono',monospace;margin-bottom:10px;min-height:14px;font-weight:700}
+.email-status.error{color:var(--red)}
+.email-status.success{color:var(--green)}
+.email-status.sending{color:var(--amber)}
+
 .gmail-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:18px}
 .gmail-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;user-select:none}
 .gmail-icon{font-size:20px}
@@ -264,6 +275,36 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
   </div>
 </div>
 
+<div class="dialer-modal" id="emailModal">
+  <div class="dialer-sheet email-sheet">
+    <div class="dialer-org" id="emailModalOrg">—</div>
+    <div class="email-field">
+      <label>To</label>
+      <input type="email" id="emailTo" placeholder="prospect@company.com">
+    </div>
+    <div class="email-field">
+      <label>Subject</label>
+      <input type="text" id="emailSubject" placeholder="Subject">
+    </div>
+    <div class="email-field">
+      <label>Message</label>
+      <textarea id="emailBody" placeholder="Write your message..."></textarea>
+    </div>
+    <div class="email-field">
+      <label>Attach a document (optional)</label>
+      <select id="emailAttachment">
+        <option value="">No attachment</option>
+      </select>
+      <div class="gmail-empty" id="emailAttachmentHint" style="text-align:left;padding:6px 0 0 0">Loading documents…</div>
+    </div>
+    <div class="email-status" id="emailSendStatus"></div>
+    <div class="dialer-btns">
+      <button class="dialer-call-btn" id="emailSendBtn" onclick="sendComposedEmail()">✉️ Send</button>
+      <button class="dialer-close-btn" onclick="closeEmailComposer()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
 <script>
 let LEADS = [];
 const saveTimers = {};
@@ -343,6 +384,7 @@ function renderCard(lead){
     ${lead.info ? `<div class="lead-info">${esc(lead.info)}</div>` : ''}
     <div class="lead-actions">
       ${canCall ? `<button class="btn btn-call" onclick="openDialer(${lead.id})">📞 Call</button>` : ''}
+      <button class="btn btn-site" onclick="openEmailComposer(${lead.id})">✉️ Email</button>
       ${lead.website ? `<a class="btn btn-site" href="${esc(lead.website)}" target="_blank" rel="noopener">🌐 Website</a>` : ''}
       ${lead.apply_url ? `<a class="btn btn-apply" href="${esc(lead.apply_url)}" target="_blank" rel="noopener">📝 Apply</a>` : ''}
       <button class="btn btn-cal" onclick="addToCalendar(${lead.id})">📅 Add to Calendar</button>
@@ -439,6 +481,109 @@ function updateDialerDisplay(){
 function closeDialer(){
   document.getElementById('dialerModal').classList.remove('open');
   dialerLeadId = null;
+}
+
+// ---- Email Composer ----
+let emailLeadId = null;
+let emailDocsCache = null;
+
+async function openEmailComposer(id){
+  const lead = LEADS.find(l=>l.id===id);
+  if(!lead) return;
+  emailLeadId = id;
+
+  document.getElementById('emailModalOrg').textContent = `${lead.org_name}${lead.role_title ? ' — ' + lead.role_title : ''}`;
+  document.getElementById('emailTo').value = lead.contact_email || '';
+  document.getElementById('emailSubject').value = `Following up — ${lead.role_title || lead.org_name}`;
+  document.getElementById('emailBody').value =
+    `Hi,\n\nI wanted to follow up regarding the ${lead.role_title || 'opportunity'} at ${lead.org_name}. I remain very interested and wanted to check in on next steps.\n\nThank you for your time,\nJack Perry Wiggins`;
+  document.getElementById('emailSendStatus').textContent = '';
+  document.getElementById('emailSendStatus').className = 'email-status';
+
+  const select = document.getElementById('emailAttachment');
+  const hint = document.getElementById('emailAttachmentHint');
+  select.innerHTML = '<option value="">No attachment</option>';
+  hint.textContent = 'Loading documents…';
+
+  document.getElementById('emailModal').classList.add('open');
+
+  try{
+    if(!emailDocsCache){
+      const res = await fetch('/api/career/documents?mode=filtered');
+      const data = await res.json();
+      emailDocsCache = (data.connected && !data.error) ? (data.files || []) : [];
+    }
+    if(!emailDocsCache.length){
+      hint.textContent = 'No documents found — check the Documents tab.';
+    } else {
+      emailDocsCache.forEach((f, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = f.name;
+        select.appendChild(opt);
+      });
+      hint.textContent = 'Pulled from your Documents (filtered view).';
+    }
+  }catch(e){
+    hint.textContent = 'Could not load documents for attaching.';
+  }
+}
+
+function closeEmailComposer(){
+  document.getElementById('emailModal').classList.remove('open');
+  emailLeadId = null;
+}
+
+async function sendComposedEmail(){
+  const to = document.getElementById('emailTo').value.trim();
+  const subject = document.getElementById('emailSubject').value.trim();
+  const body = document.getElementById('emailBody').value;
+  const attachIdx = document.getElementById('emailAttachment').value;
+  const status = document.getElementById('emailSendStatus');
+  const sendBtn = document.getElementById('emailSendBtn');
+
+  if(!to){ status.textContent = '⚠ Enter a recipient email.'; status.className = 'email-status error'; return; }
+  if(!subject){ status.textContent = '⚠ Enter a subject.'; status.className = 'email-status error'; return; }
+
+  const payload = {to, subject, body};
+  if(attachIdx !== '' && emailDocsCache && emailDocsCache[attachIdx]){
+    const f = emailDocsCache[attachIdx];
+    payload.attachment_file_id = f.id;
+    payload.attachment_name = f.name;
+    payload.attachment_mime_type = f.mimeType;
+  }
+
+  status.textContent = 'Sending…';
+  status.className = 'email-status sending';
+  sendBtn.disabled = true;
+
+  try{
+    const res = await fetch(`/api/career/leads/${emailLeadId}/send-email`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(!res.ok || data.error){
+      status.textContent = '✗ ' + (data.error || 'Send failed.');
+      status.className = 'email-status error';
+      if(data.needs_reauth){
+        status.textContent += ' Reconnect Gmail to grant send permission.';
+      }
+      sendBtn.disabled = false;
+      return;
+    }
+    const idx = LEADS.findIndex(l=>l.id===emailLeadId);
+    if(idx>-1) LEADS[idx] = data.lead;
+    status.textContent = '✓ Sent! Contact log updated.';
+    status.className = 'email-status success';
+    render();
+    setTimeout(closeEmailComposer, 900);
+  }catch(e){
+    status.textContent = '✗ Could not send email.';
+    status.className = 'email-status error';
+  }
+  sendBtn.disabled = false;
 }
 
 // ---- Add to Google Calendar ----

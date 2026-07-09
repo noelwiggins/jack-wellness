@@ -7,6 +7,11 @@ try:
 except ImportError:
     HAS_PYTZ = False
 import json
+import base64
+import mimetypes
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
 import requests
 import psycopg
 from psycopg.rows import dict_row
@@ -42,7 +47,7 @@ GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', 'https://jack-wellness.up.railway.app/auth/gmail/callback')
 GMAIL_TARGET_EMAIL = 'perrywigginsjack@gmail.com'
-GOOGLE_OAUTH_SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/drive.readonly'
+GOOGLE_OAUTH_SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly'
 DEFAULT_JOB_FILTER_QUERY = (
     '(subject:("your application" OR "thank you for applying") OR '
     'subject:("thank you for your interest") OR subject:("regarding your application") OR '
@@ -102,11 +107,15 @@ def init_db():
             last_contact_date TEXT,
             next_contact_date TEXT,
             follow_up_notes TEXT DEFAULT '',
+            contact_email TEXT,
             sort_order INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    conn.commit()
+
+    c.execute('ALTER TABLE career_leads ADD COLUMN IF NOT EXISTS contact_email TEXT')
     conn.commit()
 
     c.execute('SELECT COUNT(*) FROM career_leads')
@@ -721,6 +730,8 @@ def update_career_lead(lead_id):
         fields.append('next_contact_date = %s'); values.append(data['next_contact_date'] or None)
     if 'follow_up_notes' in data:
         fields.append('follow_up_notes = %s'); values.append(data['follow_up_notes'] or '')
+    if 'contact_email' in data:
+        fields.append('contact_email = %s'); values.append(data['contact_email'] or None)
     if not fields:
         return jsonify({"error": "no fields to update"}), 400
     fields.append('updated_at = CURRENT_TIMESTAMP')
@@ -735,6 +746,113 @@ def update_career_lead(lead_id):
         return jsonify(row)
     except Exception as e:
         print("DB error:", e)
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/career/leads/<int:lead_id>/send-email', methods=['POST'])
+@login_required
+def send_lead_email(lead_id):
+    token = get_valid_gmail_access_token()
+    if not token:
+        return jsonify({"error": "Gmail isn't connected."}), 400
+
+    data = request.get_json(force=True) or {}
+    to_addr = (data.get('to') or '').strip()
+    subject = (data.get('subject') or '').strip()
+    body_text = data.get('body') or ''
+    attachment_file_id = data.get('attachment_file_id')
+    attachment_name = data.get('attachment_name')
+    attachment_mime_type = data.get('attachment_mime_type')
+
+    if not to_addr:
+        return jsonify({"error": "Recipient email is required."}), 400
+    if not subject:
+        return jsonify({"error": "Subject is required."}), 400
+
+    try:
+        conn = get_db()
+        c = conn.cursor(row_factory=dict_row)
+        c.execute('SELECT * FROM career_leads WHERE id = %s', (lead_id,))
+        lead = c.fetchone()
+        conn.close()
+        if not lead:
+            return jsonify({"error": "Lead not found."}), 404
+
+        msg = MIMEMultipart()
+        msg['To'] = to_addr
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body_text, 'plain'))
+
+        attached_final_name = None
+        if attachment_file_id:
+            headers = {'Authorization': f'Bearer {token}'}
+            if attachment_mime_type and attachment_mime_type.startswith('application/vnd.google-apps.'):
+                export_res = requests.get(
+                    f'https://www.googleapis.com/drive/v3/files/{attachment_file_id}/export',
+                    headers=headers, params={'mimeType': 'application/pdf'}, timeout=30
+                )
+                if export_res.status_code != 200:
+                    return jsonify({"error": f"Could not export attachment from Drive ({export_res.status_code})."}), 400
+                file_bytes = export_res.content
+                base_name = (attachment_name or 'Document').rsplit('.', 1)[0]
+                attached_final_name = f"{base_name}.pdf"
+                subtype = 'pdf'
+            else:
+                dl_res = requests.get(
+                    f'https://www.googleapis.com/drive/v3/files/{attachment_file_id}',
+                    headers=headers, params={'alt': 'media'}, timeout=30
+                )
+                if dl_res.status_code != 200:
+                    return jsonify({"error": f"Could not download attachment from Drive ({dl_res.status_code})."}), 400
+                file_bytes = dl_res.content
+                attached_final_name = attachment_name or 'attachment'
+                guessed_type, _ = mimetypes.guess_type(attached_final_name)
+                subtype = (guessed_type.split('/')[-1] if guessed_type else 'octet-stream')
+
+            part = MIMEApplication(file_bytes, _subtype=subtype)
+            part.add_header('Content-Disposition', 'attachment', filename=attached_final_name)
+            msg.attach(part)
+
+        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+        send_res = requests.post(
+            'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+            headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+            json={'raw': raw},
+            timeout=30
+        )
+        send_data = send_res.json()
+        if send_res.status_code != 200 or 'id' not in send_data:
+            err_msg = send_data.get('error', {}).get('message', 'Gmail send failed.')
+            err_lower = err_msg.lower()
+            needs_reauth = 'insufficient' in err_lower or 'scope' in err_lower
+            return jsonify({"error": err_msg, "needs_reauth": needs_reauth}), 400
+
+        if HAS_PYTZ:
+            local_date = datetime.now(pytz.timezone('America/New_York')).date().isoformat()
+        else:
+            local_date = datetime.utcnow().date().isoformat()
+        timestamp_str = get_brooklyn_time()
+
+        log_entry = f'[{timestamp_str}] Emailed {to_addr} — Subject: "{subject}".'
+        if attached_final_name:
+            log_entry += f' Attachment: {attached_final_name}.'
+
+        existing_notes = (lead.get('follow_up_notes') or '').strip()
+        new_notes = (existing_notes + '\n\n' + log_entry) if existing_notes else log_entry
+
+        conn = get_db()
+        c = conn.cursor(row_factory=dict_row)
+        c.execute('''
+            UPDATE career_leads
+            SET last_contact_date = %s, follow_up_notes = %s, contact_email = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s RETURNING *
+        ''', (local_date, new_notes, to_addr, lead_id))
+        updated = c.fetchone()
+        conn.commit()
+        conn.close()
+
+        return jsonify({"ok": True, "message_id": send_data['id'], "lead": updated})
+    except Exception as e:
+        print("Send email error:", e)
         return jsonify({"error": str(e)}), 500
 
 # ── GMAIL JOB-RESPONSE INBOX ──────────────────────────────
