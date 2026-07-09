@@ -51,6 +51,22 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 
 .empty-state{text-align:center;padding:40px 20px;color:var(--text3);font-size:13px}
 .loading{text-align:center;padding:40px;color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:12px}
+
+.mode-toggle{display:flex;gap:6px;margin-bottom:10px;background:var(--bg3);border-radius:10px;padding:4px}
+.mode-btn{flex:1;background:none;border:none;border-radius:8px;padding:8px 6px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text3);cursor:pointer;transition:all .15s}
+.mode-btn.active{background:var(--card2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.search-row{display:flex;gap:8px}
+.search-row input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px}
+.search-row input:focus{outline:none;border-color:var(--green3)}
+
+.filter-edit-toggle{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;cursor:pointer;text-decoration:underline;margin-bottom:8px;display:inline-block}
+.filter-edit-box{margin-top:6px;margin-bottom:12px}
+.filter-edit-box textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.5;resize:vertical;min-height:80px}
+.filter-edit-box textarea:focus{outline:none;border-color:var(--green3)}
+.filter-edit-actions{display:flex;gap:8px;margin-top:6px}
+.filter-status{font-size:10.5px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:6px;font-weight:700}
+.filter-status.error{color:var(--red)}
+.filter-status.success{color:var(--green)}
 </style>
 </head>
 <body>
@@ -96,19 +112,108 @@ function fmtDate(iso){
   return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
 }
 
+let docsMode = 'filtered';
+let docsSearchTerm = '';
+
+function switchDocsMode(mode){
+  docsMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  const filteredInfo = document.getElementById('filteredModeInfo');
+  const filteredEditToggle = document.getElementById('filteredModeEditToggle');
+  const filterBox = document.getElementById('filterEditBox');
+  const allInfo = document.getElementById('allModeInfo');
+  const searchBox = document.getElementById('searchModeBox');
+
+  if(filteredInfo) filteredInfo.style.display = mode === 'filtered' ? 'block' : 'none';
+  if(filteredEditToggle) filteredEditToggle.style.display = mode === 'filtered' ? 'inline-block' : 'none';
+  if(filterBox && mode !== 'filtered') filterBox.style.display = 'none';
+  if(allInfo) allInfo.style.display = mode === 'all' ? 'block' : 'none';
+  if(searchBox) searchBox.style.display = mode === 'search' ? 'block' : 'none';
+
+  if(mode !== 'search'){
+    loadDocuments();
+  } else {
+    const container = document.getElementById('docsContainer');
+    if(container) container.innerHTML = '<div class="empty-state">Type a search term above and tap Go.</div>';
+  }
+}
+
+function runDocsSearch(){
+  const input = document.getElementById('docsSearchInput');
+  docsSearchTerm = input ? input.value.trim() : '';
+  loadDocuments();
+}
+
+function toggleFilterEditor(){
+  const box = document.getElementById('filterEditBox');
+  if(box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+async function loadDocFilterIntoEditor(){
+  try{
+    const res = await fetch('/api/career/documents-filter');
+    const data = await res.json();
+    const input = document.getElementById('docFilterQueryInput');
+    if(input) input.value = data.query;
+  }catch(e){}
+}
+
+async function saveDocFilter(){
+  const input = document.getElementById('docFilterQueryInput');
+  const status = document.getElementById('docFilterSaveStatus');
+  if(!input || !input.value.trim()){
+    alert('The filter can\'t be empty. Use the "All" tab to see everything unfiltered, or the "Search" tab for a one-off keyword.');
+    if(status){ status.textContent = '⚠ Not saved — filter cannot be empty.'; status.className = 'filter-status error'; }
+    return;
+  }
+  try{
+    await fetch('/api/career/documents-filter', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({query: input.value.trim()})
+    });
+    if(status){ status.textContent = '✓ Saved — refreshing results...'; status.className = 'filter-status success'; }
+    loadDocuments();
+  }catch(e){
+    if(status){ status.textContent = '✗ Could not save filter.'; status.className = 'filter-status error'; }
+  }
+}
+
+async function resetDocFilter(){
+  try{
+    const res = await fetch('/api/career/documents-filter/reset', {method:'POST'});
+    const data = await res.json();
+    const input = document.getElementById('docFilterQueryInput');
+    if(input) input.value = data.query;
+    const status = document.getElementById('docFilterSaveStatus');
+    if(status){ status.textContent = '✓ Reset to default — refreshing results...'; status.className = 'filter-status success'; }
+    loadDocuments();
+  }catch(e){}
+}
+
 async function loadDocuments(){
   const statusSub = document.getElementById('statusSub');
   const statusBody = document.getElementById('statusBody');
   const container = document.getElementById('docsContainer');
+
+  if(docsMode === 'search' && !docsSearchTerm){
+    container.innerHTML = '<div class="empty-state">Type a search term above and tap Go.</div>';
+    return;
+  }
   container.innerHTML = '<div class="loading">⟳ Loading documents...</div>';
 
   try{
-    const res = await fetch('/api/career/documents');
+    const params = new URLSearchParams({mode: docsMode});
+    if(docsMode === 'search') params.set('q', docsSearchTerm);
+    const res = await fetch('/api/career/documents?' + params.toString());
     const data = await res.json();
 
     if(!data.connected){
       statusSub.innerHTML = `Not connected yet. Documents use the same Google account as Gmail — connect it from the Career Office page first.`;
       statusBody.innerHTML = `<a class="btn btn-call" href="/">← Go connect Gmail/Drive on Career Office</a>`;
+      statusBody.dataset.built = '';
       container.innerHTML = '';
       return;
     }
@@ -119,6 +224,7 @@ async function loadDocuments(){
         ${data.enable_url ? `<a class="btn btn-call" href="${esc(data.enable_url)}" target="_blank" rel="noopener">🔧 Enable Drive API in Google Cloud</a>` : ''}
         <button class="btn btn-cal" onclick="loadDocuments()">🔄 Retry after enabling</button>
         <div class="status-sub" style="margin-top:10px">After enabling, it can take a minute or two to propagate — then tap Retry.</div>`;
+      statusBody.dataset.built = '';
       container.innerHTML = '';
       return;
     }
@@ -126,6 +232,7 @@ async function loadDocuments(){
     if(data.needs_reauth){
       statusSub.innerHTML = `Connected, but Drive access wasn't granted yet (this connection predates Drive support). Reconnect once to add Drive read access.`;
       statusBody.innerHTML = `<a class="btn btn-call" href="/auth/gmail/connect">🔗 Reconnect for Drive access</a>`;
+      statusBody.dataset.built = '';
       container.innerHTML = '';
       return;
     }
@@ -133,15 +240,47 @@ async function loadDocuments(){
     if(data.error){
       statusSub.innerHTML = `Connected, but couldn't load files: ${esc(data.error)}`;
       statusBody.innerHTML = `<button class="btn btn-cal" onclick="loadDocuments()">🔄 Retry</button>`;
+      statusBody.dataset.built = '';
       container.innerHTML = '';
       return;
     }
 
-    statusSub.innerHTML = `Connected. Showing Drive files matching passport, CV, resume, transcript, certificate, and similar keywords.`;
-    statusBody.innerHTML = `<button class="btn btn-cal" onclick="loadDocuments()">🔄 Refresh</button>`;
+    if(!statusBody.dataset.built){
+      statusSub.innerHTML = `Connected. Choose how to browse your Drive files below.`;
+      statusBody.innerHTML = `
+        <div class="mode-toggle" id="docsModeToggle">
+          <button class="mode-btn" data-mode="all" onclick="switchDocsMode('all')">📥 All</button>
+          <button class="mode-btn active" data-mode="filtered" onclick="switchDocsMode('filtered')">🎯 Filtered</button>
+          <button class="mode-btn" data-mode="search" onclick="switchDocsMode('search')">🔍 Search</button>
+        </div>
+        <div class="status-sub" id="filteredModeInfo" style="margin-bottom:6px">Showing files matching passport, CV, resume, transcript, certificate, and similar keywords.</div>
+        <span class="filter-edit-toggle" id="filteredModeEditToggle" onclick="toggleFilterEditor()">✏️ Edit filter</span>
+        <div class="filter-edit-box" id="filterEditBox" style="display:none">
+          <div class="status-sub" style="padding:0 0 8px 0">Uses real Google Drive query syntax (e.g. <code>name contains 'CV'</code>). Can't be empty — use "All" or "Search" tabs to broaden instead.</div>
+          <textarea id="docFilterQueryInput" placeholder="Drive query syntax, e.g. name contains 'resume'"></textarea>
+          <div class="filter-edit-actions">
+            <button class="btn btn-cal" onclick="saveDocFilter()">💾 Save Filter</button>
+            <button class="btn btn-cal" onclick="resetDocFilter()">↺ Reset to Default</button>
+          </div>
+          <div class="filter-status" id="docFilterSaveStatus"></div>
+        </div>
+        <div class="status-sub" id="allModeInfo" style="margin-bottom:10px;display:none">Showing all Drive files, unfiltered, most recent first.</div>
+        <div id="searchModeBox" style="display:none;margin-bottom:10px">
+          <div class="search-row">
+            <input type="text" id="docsSearchInput" placeholder="e.g. transcript, or a filename" onkeydown="if(event.key==='Enter') runDocsSearch()">
+            <button class="btn btn-call" onclick="runDocsSearch()">Go</button>
+          </div>
+        </div>
+        <button class="btn btn-cal" onclick="loadDocuments()">🔄 Refresh</button>`;
+      statusBody.dataset.built = 'true';
+      loadDocFilterIntoEditor();
+    }
 
     if(!data.files || !data.files.length){
-      container.innerHTML = '<div class="empty-state">No matching documents found in Drive yet.</div>';
+      const emptyMsg = docsMode === 'all' ? 'No files found in Drive.'
+        : docsMode === 'search' ? 'No files matched that search.'
+        : 'No matching documents found in Drive yet.';
+      container.innerHTML = `<div class="empty-state">${emptyMsg}</div>`;
       return;
     }
 

@@ -1022,10 +1022,52 @@ DOC_KEYWORDS = ['passport', 'CV', 'resume', 'transcript', 'certificate', 'diplom
                 'cover letter', "driver's license", 'license', 'ID card', 'social security',
                 'birth certificate', 'immunization', 'vaccination']
 
+def escape_drive_query(s):
+    return s.replace("\\", "\\\\").replace("'", "\\'")
+
+def build_default_doc_query():
+    name_clauses = " or ".join([f"name contains '{escape_drive_query(kw)}'" for kw in DOC_KEYWORDS])
+    return f"({name_clauses}) and trashed = false"
+
+def get_active_doc_query():
+    return get_setting('drive_doc_filter_query', build_default_doc_query())
+
 @app.route('/documents')
 @login_required
 def documents_page():
     return render_template('documents.html')
+
+@app.route('/api/career/documents-filter', methods=['GET'])
+@login_required
+def get_documents_filter():
+    return jsonify({
+        "query": get_active_doc_query(),
+        "is_custom": get_setting('drive_doc_filter_query') is not None,
+        "default_query": build_default_doc_query(),
+    })
+
+@app.route('/api/career/documents-filter', methods=['POST'])
+@login_required
+def save_documents_filter():
+    data = request.get_json(force=True) or {}
+    query = (data.get('query') or '').strip()
+    if not query:
+        return jsonify({"error": "query cannot be empty"}), 400
+    set_setting('drive_doc_filter_query', query)
+    return jsonify({"ok": True, "query": query})
+
+@app.route('/api/career/documents-filter/reset', methods=['POST'])
+@login_required
+def reset_documents_filter():
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM app_settings WHERE key = 'drive_doc_filter_query'")
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("Doc filter reset error:", e)
+    return jsonify({"ok": True, "query": build_default_doc_query()})
 
 @app.route('/api/career/documents', methods=['GET'])
 @login_required
@@ -1033,11 +1075,21 @@ def get_documents():
     token = get_valid_gmail_access_token()  # same Google account/token, now scoped for Drive too
     if not token:
         return jsonify({"connected": False, "files": []})
+
+    mode = request.args.get('mode', 'filtered')
+    search_term = request.args.get('q', '').strip()
+
+    if mode == 'all':
+        query = 'trashed = false'
+    elif mode == 'search':
+        if not search_term:
+            return jsonify({"connected": True, "files": [], "error": "Enter a search term first."})
+        term = escape_drive_query(search_term)
+        query = f"(name contains '{term}' or fullText contains '{term}') and trashed = false"
+    else:
+        query = get_active_doc_query()
+
     try:
-        def escape_drive_query(s):
-            return s.replace("\\", "\\\\").replace("'", "\\'")
-        name_clauses = " or ".join([f"name contains '{escape_drive_query(kw)}'" for kw in DOC_KEYWORDS])
-        query = f"({name_clauses}) and trashed = false"
         res = requests.get(
             'https://www.googleapis.com/drive/v3/files',
             headers={'Authorization': f'Bearer {token}'},
@@ -1066,7 +1118,7 @@ def get_documents():
                 "needs_enable_api": needs_enable_api,
                 "enable_url": enable_url,
             })
-        return jsonify({"connected": True, "files": data.get('files', [])})
+        return jsonify({"connected": True, "files": data.get('files', []), "mode": mode})
     except Exception as e:
         print("Drive fetch error:", e)
         return jsonify({"connected": True, "files": [], "error": str(e)})
