@@ -304,6 +304,20 @@ def ensure_additional_seed_data():
                 WHERE NOT EXISTS (SELECT 1 FROM career_leads WHERE org_name = %s)
             ''', l + (l[1],))
 
+        extra_contacts = [
+            ("Professional Network & References", "The Doe Fund", "Contact — Nazerine Griffin",
+             "https://www.doe.org", "",
+             "718-416-4924", "",
+             "Nazerine Griffin — direct contact at The Doe Fund, where Jack previously worked as an Intake Specialist (June 2024 \u2013 Sept 2025). Worth reaching out re: references or new openings. Phone: 718-416-4924 or 646-772-5101.",
+             "nazerine@doe.org", 10),
+        ]
+        for l in extra_contacts:
+            c.execute('''
+                INSERT INTO career_leads (category, org_name, role_title, website, apply_url, phone, pay_range, info, contact_email, sort_order)
+                SELECT %s,%s,%s,%s,%s,%s,%s,%s,%s,%s
+                WHERE NOT EXISTS (SELECT 1 FROM career_leads WHERE org_name = %s)
+            ''', l + (l[1],))
+
         conn.commit()
         conn.close()
     except Exception as e:
