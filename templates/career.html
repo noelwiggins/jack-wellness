@@ -131,8 +131,12 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .search-row input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px}
 .search-row input:focus{outline:none;border-color:var(--green3)}
 
-.spotify-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:18px}
-.spotify-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;user-select:none}
+.spotify-panel{position:fixed;top:56px;left:0;right:0;background:var(--card2);border-bottom:1px solid var(--border2);box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:150;max-height:0;overflow:hidden;transition:max-height .3s ease}
+.spotify-panel.open{max-height:80vh;overflow-y:auto}
+.spotify-panel-inner{padding:16px;max-width:680px;margin:0 auto}
+.spotify-panel-close{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 6px}
+.spotify-panel-close:hover{color:var(--text)}
+.spotify-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .spotify-icon{font-size:20px}
 .spotify-title{font-size:14px;font-weight:700;color:var(--text);flex:1}
 .spotify-dot{width:8px;height:8px;border-radius:50%;background:var(--text3)}
@@ -143,7 +147,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .now-playing-info{flex:1;min-width:0}
 .now-playing-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .now-playing-artist{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.player-controls{display:flex;gap:8px;margin-bottom:14px}
+.player-controls{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .player-btn{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer;color:var(--text)}
 .player-btn:hover{border-color:#1DB954}
 .recent-track{display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
@@ -195,8 +199,22 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 <nav class="nav">
   <button class="nav-back" onclick="window.location.href='/wellness'">🌿 WELLNESS</button>
   <div class="nav-logo">Career Office</div>
+  <button class="nav-back" onclick="toggleSpotifyPanel()">🎵 SPOTIFY</button>
   <button class="nav-back" onclick="window.location.href='/documents'">📁 DOCS</button>
 </nav>
+
+<div class="spotify-panel" id="spotifyPanel">
+  <div class="spotify-panel-inner">
+    <div class="spotify-head">
+      <span class="spotify-icon">🎵</span>
+      <span class="spotify-title">Spotify</span>
+      <span class="spotify-dot" id="spotifyDot"></span>
+      <button class="spotify-panel-close" onclick="toggleSpotifyPanel()">✕</button>
+    </div>
+    <div class="spotify-sub" id="spotifySub">Checking connection…</div>
+    <div id="spotifyBody"></div>
+  </div>
+</div>
 
 <div class="wrap">
   <div class="page-head">
@@ -227,19 +245,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
     <div class="gmail-sub" id="gmailSub">Checking connection…</div>
     <div class="collapsible-body" id="gmail-collapsible">
       <div id="gmailBody"></div>
-    </div>
-  </div>
-
-  <div class="spotify-card" id="spotifyCard">
-    <div class="spotify-head" onclick="toggleCollapse('spotify-collapsible')">
-      <span class="spotify-icon">🎵</span>
-      <span class="spotify-title">Spotify</span>
-      <span class="spotify-dot" id="spotifyDot"></span>
-      <span class="chevron" id="spotify-collapsible-chevron">▾</span>
-    </div>
-    <div class="spotify-sub" id="spotifySub">Checking connection…</div>
-    <div class="collapsible-body" id="spotify-collapsible">
-      <div id="spotifyBody"></div>
     </div>
   </div>
 
@@ -808,20 +813,20 @@ async function loadSpotifyCard(){
 
     if(!status.configured){
       dot.classList.remove('on');
-      sub.innerHTML = `Not set up yet — tap to see setup steps.`;
+      sub.innerHTML = `Not set up yet.`;
       body.innerHTML = `<div class="gmail-empty">Add <b>SPOTIFY_CLIENT_ID</b>, <b>SPOTIFY_CLIENT_SECRET</b>, and <b>SPOTIFY_REDIRECT_URI</b> in Railway variables (from a Spotify Developer app), then reload.</div>
         <button class="btn btn-cal" disabled>🔒 Connect Spotify (needs setup)</button>`;
       return;
     }
     if(!status.connected){
       dot.classList.remove('on');
-      sub.innerHTML = `Not connected yet — tap to connect.`;
+      sub.innerHTML = `Not connected yet.`;
       body.innerHTML = `<div class="gmail-empty">Authorize your Spotify account to see listening stats and control playback.</div>
         <button class="btn btn-call" onclick="window.location.href='/auth/spotify/connect'">🔗 Connect Spotify</button>`;
       return;
     }
     dot.classList.add('on');
-    sub.innerHTML = `Connected as <b>${status.display_name}</b> — tap to view listening stats.`;
+    sub.innerHTML = `Connected as <b>${status.display_name}</b>.`;
     body.innerHTML = `
       <div id="spotifyNowPlaying"></div>
       <div class="player-controls">
@@ -981,9 +986,18 @@ async function togglePinVisited(id, checked){
   });
 }
 
+let spotifyLoaded = false;
+function toggleSpotifyPanel(){
+  const panel = document.getElementById('spotifyPanel');
+  panel.classList.toggle('open');
+  if(panel.classList.contains('open') && !spotifyLoaded){
+    spotifyLoaded = true;
+    loadSpotifyCard();
+  }
+}
+
 loadMapPins();
 loadGmailCard();
-loadSpotifyCard();
 loadLeads();
 </script>
 </body>
