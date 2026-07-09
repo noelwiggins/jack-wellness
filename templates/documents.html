@@ -113,6 +113,16 @@ async function loadDocuments(){
       return;
     }
 
+    if(data.needs_enable_api){
+      statusSub.innerHTML = `Connected with the right permissions — but the Google Drive API itself hasn't been turned on yet in the Google Cloud project. This is a one-time setup step, not a reconnect issue.`;
+      statusBody.innerHTML = `
+        ${data.enable_url ? `<a class="btn btn-call" href="${esc(data.enable_url)}" target="_blank" rel="noopener">🔧 Enable Drive API in Google Cloud</a>` : ''}
+        <button class="btn btn-cal" onclick="loadDocuments()">🔄 Retry after enabling</button>
+        <div class="status-sub" style="margin-top:10px">After enabling, it can take a minute or two to propagate — then tap Retry.</div>`;
+      container.innerHTML = '';
+      return;
+    }
+
     if(data.needs_reauth){
       statusSub.innerHTML = `Connected, but Drive access wasn't granted yet (this connection predates Drive support). Reconnect once to add Drive read access.`;
       statusBody.innerHTML = `<a class="btn btn-call" href="/auth/gmail/connect">🔗 Reconnect for Drive access</a>`;

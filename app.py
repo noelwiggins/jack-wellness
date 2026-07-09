@@ -1050,8 +1050,20 @@ def get_documents():
         data = res.json()
         if 'error' in data:
             msg = data['error'].get('message', 'Drive API error')
-            needs_reauth = 'insufficient' in msg.lower() or 'scope' in msg.lower() or data['error'].get('code') == 403
-            return jsonify({"connected": True, "files": [], "error": msg, "needs_reauth": needs_reauth})
+            msg_lower = msg.lower()
+            needs_enable_api = 'has not been used' in msg_lower or 'it is disabled' in msg_lower or 'accessnotconfigured' in msg_lower
+            needs_reauth = (not needs_enable_api) and ('insufficient' in msg_lower or 'scope' in msg_lower)
+            enable_url = None
+            if needs_enable_api:
+                import re as _re
+                url_match = _re.search(r'https://console\.developers\.google\.com\S+', msg)
+                enable_url = url_match.group(0).rstrip('.') if url_match else None
+            return jsonify({
+                "connected": True, "files": [], "error": msg,
+                "needs_reauth": needs_reauth,
+                "needs_enable_api": needs_enable_api,
+                "enable_url": enable_url,
+            })
         return jsonify({"connected": True, "files": data.get('files', [])})
     except Exception as e:
         print("Drive fetch error:", e)
