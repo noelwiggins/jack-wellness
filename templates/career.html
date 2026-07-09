@@ -109,7 +109,9 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .filter-edit-box textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.5;resize:vertical;min-height:80px}
 .filter-edit-box textarea:focus{outline:none;border-color:var(--green3)}
 .filter-edit-actions{display:flex;gap:8px;margin-top:6px}
-.filter-status{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:6px}
+.filter-status{font-size:10.5px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:6px;font-weight:700}
+.filter-status.error{color:var(--red)}
+.filter-status.success{color:var(--green)}
 
 .spotify-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:18px}
 .spotify-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;user-select:none}
@@ -481,6 +483,7 @@ async function loadGmailCard(){
       <div class="gmail-sub" style="margin-bottom:6px">Showing employer replies (interviews, application status, offers) — LinkedIn/Indeed job-alert noise and known marketing senders filtered out.<span class="gmail-filter-tag">filter · last 60 days</span></div>
       <span class="filter-edit-toggle" onclick="event.stopPropagation(); toggleFilterEditor()">✏️ Edit filter</span>
       <div class="filter-edit-box" id="filterEditBox" style="display:none">
+        <div class="gmail-empty" style="text-align:left;padding:0 0 8px 0">Uses real Gmail search syntax (same as the Gmail search bar). Can't be empty — to broaden results, try something like <code>newer_than:30d</code> instead of clearing it entirely.</div>
         <textarea id="filterQueryInput" placeholder="Gmail search syntax, e.g. subject:(interview) OR from:(company.com)"></textarea>
         <div class="filter-edit-actions">
           <button class="btn btn-cal" onclick="saveGmailFilter()">💾 Save Filter</button>
@@ -518,7 +521,8 @@ async function saveGmailFilter(){
   const input = document.getElementById('filterQueryInput');
   const status = document.getElementById('filterSaveStatus');
   if(!input || !input.value.trim()){
-    if(status) status.textContent = 'Query cannot be empty.';
+    alert('The filter can\'t be empty — an empty query would ask Gmail to search for nothing. If you want to see everything unfiltered, tap "Reset to Default" instead, or type a broad query like "newer_than:30d".');
+    if(status){ status.textContent = '⚠ Not saved — filter cannot be empty.'; status.className = 'filter-status error'; }
     return;
   }
   try{
@@ -527,10 +531,10 @@ async function saveGmailFilter(){
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({query: input.value.trim()})
     });
-    if(status) status.textContent = '✓ Saved — refreshing results...';
+    if(status){ status.textContent = '✓ Saved — refreshing results...'; status.className = 'filter-status success'; }
     loadGmailInbox();
   }catch(e){
-    if(status) status.textContent = 'Could not save filter.';
+    if(status){ status.textContent = '✗ Could not save filter.'; status.className = 'filter-status error'; }
   }
 }
 
@@ -541,7 +545,7 @@ async function resetGmailFilter(){
     const input = document.getElementById('filterQueryInput');
     if(input) input.value = data.query;
     const status = document.getElementById('filterSaveStatus');
-    if(status) status.textContent = '✓ Reset to default — refreshing results...';
+    if(status){ status.textContent = '✓ Reset to default — refreshing results...'; status.className = 'filter-status success'; }
     loadGmailInbox();
   }catch(e){}
 }
