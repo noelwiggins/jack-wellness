@@ -47,7 +47,7 @@ GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', 'https://jack-wellness.up.railway.app/auth/gmail/callback')
 GMAIL_TARGET_EMAIL = 'perrywigginsjack@gmail.com'
-GOOGLE_OAUTH_SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email'
+GOOGLE_OAUTH_SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/calendar.readonly'
 DEFAULT_JOB_FILTER_QUERY = (
     '(subject:("your application" OR "thank you for applying") OR '
     'subject:("thank you for your interest") OR subject:("regarding your application") OR '
@@ -1279,6 +1279,124 @@ def gmail_inbox():
 
     result = {"connected": True, "messages": all_msgs, "mode": mode, "accounts": [a['email'] for a in accounts]}
     if account_errors and not all_msgs:
+        result["error"] = "; ".join(account_errors)
+    return jsonify(result)
+
+# ── GOOGLE CALENDAR (weekly view, merged across accounts) ─
+
+CALENDAR_ACCOUNT_COLORS = {}
+_CAL_COLOR_PALETTE = ['#2E8B4F', '#2570A8', '#B8792A', '#C1392B', '#7A4FB0']
+
+def get_calendar_account_color(email):
+    if email not in CALENDAR_ACCOUNT_COLORS:
+        idx = len(CALENDAR_ACCOUNT_COLORS) % len(_CAL_COLOR_PALETTE)
+        CALENDAR_ACCOUNT_COLORS[email] = _CAL_COLOR_PALETTE[idx]
+    return CALENDAR_ACCOUNT_COLORS[email]
+
+def get_week_bounds(start_param):
+    if HAS_PYTZ:
+        tz = pytz.timezone('America/New_York')
+        now_local = datetime.now(tz)
+    else:
+        tz = None
+        now_local = datetime.utcnow()
+
+    if start_param:
+        try:
+            base_date = datetime.strptime(start_param, '%Y-%m-%d').date()
+        except ValueError:
+            base_date = now_local.date()
+    else:
+        base_date = now_local.date()
+
+    monday = base_date - timedelta(days=base_date.weekday())
+    sunday = monday + timedelta(days=6)
+
+    if tz:
+        week_start = tz.localize(datetime.combine(monday, datetime.min.time()))
+        week_end = tz.localize(datetime.combine(sunday, datetime.max.time().replace(microsecond=0)))
+    else:
+        week_start = datetime.combine(monday, datetime.min.time())
+        week_end = datetime.combine(sunday, datetime.max.time().replace(microsecond=0))
+
+    return monday, sunday, week_start, week_end
+
+@app.route('/api/career/calendar-week', methods=['GET'])
+@login_required
+def calendar_week():
+    accounts = get_gmail_rows()
+    if not accounts:
+        return jsonify({"connected": False, "events": []})
+
+    start_param = request.args.get('start', '').strip()
+    monday, sunday, week_start, week_end = get_week_bounds(start_param)
+
+    time_min = week_start.isoformat()
+    time_max = week_end.isoformat()
+
+    all_events = []
+    account_errors = []
+
+    for account in accounts:
+        account_email = account['email']
+        token = get_valid_gmail_access_token(account_email)
+        if not token:
+            account_errors.append(f"{account_email}: could not refresh token")
+            continue
+        try:
+            res = requests.get(
+                'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+                headers={'Authorization': f'Bearer {token}'},
+                params={
+                    'timeMin': time_min,
+                    'timeMax': time_max,
+                    'singleEvents': 'true',
+                    'orderBy': 'startTime',
+                    'maxResults': 100,
+                },
+                timeout=15
+            )
+            data = res.json()
+            if 'error' in data:
+                msg = data['error'].get('message', 'Calendar API error')
+                msg_lower = msg.lower()
+                needs_enable_api = 'has not been used' in msg_lower or 'it is disabled' in msg_lower or 'accessnotconfigured' in msg_lower
+                needs_reauth = (not needs_enable_api) and ('insufficient' in msg_lower or 'scope' in msg_lower)
+                account_errors.append(f"{account_email}: {msg}" + (' [needs_enable_api]' if needs_enable_api else ' [needs_reauth]' if needs_reauth else ''))
+                continue
+            for ev in data.get('items', []):
+                start = ev.get('start', {})
+                end = ev.get('end', {})
+                start_val = start.get('dateTime') or start.get('date')
+                end_val = end.get('dateTime') or end.get('date')
+                all_events.append({
+                    "id": ev.get('id'),
+                    "title": ev.get('summary', '(no title)'),
+                    "start": start_val,
+                    "end": end_val,
+                    "all_day": 'date' in start and 'dateTime' not in start,
+                    "location": ev.get('location', ''),
+                    "link": ev.get('htmlLink', ''),
+                    "account": account_email,
+                    "color": get_calendar_account_color(account_email),
+                })
+        except Exception as e:
+            print(f"Calendar fetch error ({account_email}):", e)
+            account_errors.append(f"{account_email}: {str(e)}")
+
+    try:
+        all_events.sort(key=lambda e: e.get('start') or '')
+    except Exception:
+        pass
+
+    result = {
+        "connected": True,
+        "events": all_events,
+        "week_start": monday.isoformat(),
+        "week_end": sunday.isoformat(),
+        "accounts": [a['email'] for a in accounts],
+    }
+    if account_errors and not all_events:
         result["error"] = "; ".join(account_errors)
     return jsonify(result)
 

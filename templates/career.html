@@ -182,6 +182,24 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .recent-track-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .recent-track-artist{font-size:10.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+.cal-nav{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.cal-nav-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text2);cursor:pointer}
+.cal-nav-btn:hover{color:var(--text);border-color:var(--green3)}
+.cal-nav-today{flex:1;text-align:center}
+.cal-legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.cal-legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.cal-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.cal-day-group{margin-bottom:14px}
+.cal-day-head{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-family:'JetBrains Mono',monospace;padding-bottom:6px;margin-bottom:8px;border-bottom:1px solid var(--border)}
+.cal-day-head.today{color:var(--green)}
+.cal-event{display:flex;gap:10px;align-items:flex-start;padding:8px 0}
+.cal-event-bar{width:4px;align-self:stretch;border-radius:2px;flex-shrink:0;min-height:32px}
+.cal-event-info{flex:1;min-width:0}
+.cal-event-title{font-size:13px;font-weight:700;color:var(--text)}
+.cal-event-time{font-size:10.5px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.cal-event-loc{font-size:10.5px;color:var(--text2);margin-top:2px}
+.cal-empty-day{font-size:11px;color:var(--text3);padding:4px 0;font-style:italic}
+
 .chevron{font-size:12px;color:var(--text3);transition:transform .2s;flex-shrink:0}
 .chevron.open{transform:rotate(180deg)}
 .collapsible-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
@@ -224,10 +242,23 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 <nav class="nav">
   <button class="nav-back" onclick="window.location.href='/wellness'">🌿 WELLNESS</button>
   <div class="nav-logo">Career Office</div>
+  <button class="nav-back" onclick="toggleCalendarPanel()">📅 CALENDAR</button>
   <button class="nav-back" onclick="toggleSpotifyPanel()">🎵 SPOTIFY</button>
   <button class="nav-back" onclick="window.location.href='/videos'">🎬 VIDEOS</button>
   <button class="nav-back" onclick="window.location.href='/documents'">📁 DOCS</button>
 </nav>
+
+<div class="spotify-panel" id="calendarPanel">
+  <div class="spotify-panel-inner">
+    <div class="spotify-head">
+      <span class="spotify-icon">📅</span>
+      <span class="spotify-title">Calendar — Week of <span id="calWeekLabel">—</span></span>
+      <button class="spotify-panel-close" onclick="toggleCalendarPanel()">✕</button>
+    </div>
+    <div class="spotify-sub" id="calSub">Checking connection…</div>
+    <div id="calBody"></div>
+  </div>
+</div>
 
 <div class="spotify-panel" id="spotifyPanel">
   <div class="spotify-panel-inner">
@@ -1172,6 +1203,123 @@ function toggleSpotifyPanel(){
   if(panel.classList.contains('open') && !spotifyLoaded){
     spotifyLoaded = true;
     loadSpotifyCard();
+  }
+}
+
+// ---- Calendar ----
+let calendarLoaded = false;
+let calWeekStartOverride = null; // YYYY-MM-DD or null for "this week"
+
+function toggleCalendarPanel(){
+  const panel = document.getElementById('calendarPanel');
+  panel.classList.toggle('open');
+  if(panel.classList.contains('open') && !calendarLoaded){
+    calendarLoaded = true;
+    loadCalendarWeek();
+  }
+}
+
+function calNavWeek(direction){
+  // direction: -1 previous week, +1 next week, 0 = today
+  if(direction === 0){
+    calWeekStartOverride = null;
+  } else {
+    const base = calWeekStartOverride ? new Date(calWeekStartOverride + 'T00:00:00') : new Date();
+    base.setDate(base.getDate() + direction * 7);
+    calWeekStartOverride = base.toISOString().slice(0,10);
+  }
+  loadCalendarWeek();
+}
+
+function fmtDayHeader(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
+}
+
+function fmtEventTime(ev){
+  if(ev.all_day) return 'All day';
+  const s = new Date(ev.start);
+  const e = new Date(ev.end);
+  const opts = {hour:'numeric', minute:'2-digit'};
+  return `${s.toLocaleTimeString('en-US', opts)} \u2013 ${e.toLocaleTimeString('en-US', opts)}`;
+}
+
+async function loadCalendarWeek(){
+  const sub = document.getElementById('calSub');
+  const body = document.getElementById('calBody');
+  const label = document.getElementById('calWeekLabel');
+
+  try{
+    const params = new URLSearchParams();
+    if(calWeekStartOverride) params.set('start', calWeekStartOverride);
+    const res = await fetch('/api/career/calendar-week?' + params.toString());
+    const data = await res.json();
+
+    if(!data.connected){
+      sub.innerHTML = 'Not connected yet. Connect Gmail on the Career Office page first — Calendar uses the same accounts.';
+      body.innerHTML = '';
+      return;
+    }
+
+    const ws = new Date(data.week_start + 'T00:00:00');
+    const we = new Date(data.week_end + 'T00:00:00');
+    label.textContent = `${ws.toLocaleDateString('en-US',{month:'short',day:'numeric'})} \u2013 ${we.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+
+    const nav = `<div class="cal-nav">
+      <button class="cal-nav-btn" onclick="calNavWeek(-1)">\u2190 Prev</button>
+      <button class="cal-nav-btn cal-nav-today" onclick="calNavWeek(0)">This Week</button>
+      <button class="cal-nav-btn" onclick="calNavWeek(1)">Next \u2192</button>
+    </div>`;
+
+    if(data.error && (!data.events || !data.events.length)){
+      sub.innerHTML = `Connected, but couldn't load events: ${esc(data.error)}`;
+      body.innerHTML = nav;
+      return;
+    }
+
+    const accounts = data.accounts || [];
+    const legend = accounts.map(a => {
+      const color = (data.events.find(e=>e.account===a) || {}).color || '#9BB09D';
+      return `<span class="cal-legend-item"><span class="cal-legend-dot" style="background:${color}"></span>${esc(a)}</span>`;
+    }).join('');
+
+    sub.innerHTML = `Showing events across ${accounts.length} connected account${accounts.length===1?'':'s'}.`;
+
+    // group events by local date (YYYY-MM-DD)
+    const days = [];
+    for(let i=0; i<7; i++){
+      const d = new Date(ws);
+      d.setDate(ws.getDate()+i);
+      days.push(d.toISOString().slice(0,10));
+    }
+    const todayStr = new Date().toISOString().slice(0,10);
+
+    let daysHtml = '';
+    days.forEach(dayStr => {
+      const dayEvents = (data.events||[]).filter(ev => (ev.start||'').slice(0,10) === dayStr);
+      daysHtml += `<div class="cal-day-group">
+        <div class="cal-day-head${dayStr===todayStr?' today':''}">${fmtDayHeader(dayStr)}${dayStr===todayStr?' \u2022 Today':''}</div>`;
+      if(!dayEvents.length){
+        daysHtml += `<div class="cal-empty-day">No events</div>`;
+      } else {
+        dayEvents.forEach(ev => {
+          daysHtml += `<div class="cal-event">
+            <div class="cal-event-bar" style="background:${ev.color}"></div>
+            <div class="cal-event-info">
+              <div class="cal-event-title">${esc(ev.title)}</div>
+              <div class="cal-event-time">${fmtEventTime(ev)}</div>
+              ${ev.location ? `<div class="cal-event-loc">📍 ${esc(ev.location)}</div>` : ''}
+            </div>
+          </div>`;
+        });
+      }
+      daysHtml += `</div>`;
+    });
+
+    body.innerHTML = nav + `<div class="cal-legend">${legend}</div>` + daysHtml;
+  }catch(e){
+    sub.textContent = 'Could not load calendar.';
+    body.innerHTML = '';
   }
 }
 
