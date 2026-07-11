@@ -788,7 +788,7 @@ async function loadGmailCard(){
       </span>`).join('');
     const addAccountRow = `
       <div class="add-account-row">
-        <input type="email" id="newGmailAccountInput" placeholder="another.email@example.com" value="${accounts.length ? '' : 'perrywigginsjack@gmail.com'}">
+        <input type="email" id="newGmailAccountInput" placeholder="another.email@example.com" value="${accounts.includes('jkp8302@nyu.edu') ? '' : (accounts.length ? 'jkp8302@nyu.edu' : 'perrywigginsjack@gmail.com')}">
         <button class="btn btn-call" onclick="connectAnotherGmailAccount()">🔗 Connect</button>
       </div>`;
 
