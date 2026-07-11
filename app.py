@@ -986,11 +986,24 @@ def update_map_pin(pin_id):
         print("DB error:", e)
         return jsonify({"error": str(e)}), 500
 
-def get_gmail_row():
+def get_gmail_rows():
+    """Return ALL connected Gmail/Google accounts, oldest first."""
     try:
         conn = get_db()
         c = conn.cursor(row_factory=dict_row)
-        c.execute('SELECT * FROM gmail_connection ORDER BY id DESC LIMIT 1')
+        c.execute('SELECT * FROM gmail_connection ORDER BY connected_at ASC')
+        rows = c.fetchall()
+        conn.close()
+        return rows
+    except Exception as e:
+        print("Gmail DB error:", e)
+        return []
+
+def get_gmail_row_by_email(email):
+    try:
+        conn = get_db()
+        c = conn.cursor(row_factory=dict_row)
+        c.execute('SELECT * FROM gmail_connection WHERE email = %s', (email,))
         row = c.fetchone()
         conn.close()
         return row
@@ -1024,8 +1037,12 @@ def refresh_gmail_access_token(row):
         print("Gmail refresh error:", e)
         return None
 
-def get_valid_gmail_access_token():
-    row = get_gmail_row()
+def get_valid_gmail_access_token(email=None):
+    """Get a valid access token for a specific account, or the primary account (GMAIL_TARGET_EMAIL)
+    if no email is given — this keeps Documents/send-email pinned to the primary account even
+    when additional accounts are connected."""
+    target_email = email or GMAIL_TARGET_EMAIL
+    row = get_gmail_row_by_email(target_email)
     if not row:
         return None
     expiry = row.get('token_expiry')
@@ -1040,6 +1057,7 @@ def gmail_connect():
         return ("Gmail integration isn't configured yet. In Railway → jack-wellness → Variables, "
                 "add GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI "
                 "(from a Google Cloud OAuth client with the Gmail API enabled), then reload this page."), 200
+    target_email = request.args.get('email', '').strip() or GMAIL_TARGET_EMAIL
     state = secrets.token_urlsafe(16)
     session['gmail_oauth_state'] = state
     params = {
@@ -1049,7 +1067,7 @@ def gmail_connect():
         'scope': GOOGLE_OAUTH_SCOPES,
         'access_type': 'offline',
         'prompt': 'consent',
-        'login_hint': GMAIL_TARGET_EMAIL,
+        'login_hint': target_email,
         'state': state,
     }
     return redirect('https://accounts.google.com/o/oauth2/v2/auth?' + urlencode(params))
@@ -1101,20 +1119,26 @@ def gmail_callback():
 @app.route('/api/career/gmail-status', methods=['GET'])
 @login_required
 def gmail_status():
-    row = get_gmail_row()
+    rows = get_gmail_rows()
     return jsonify({
         "configured": bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET),
-        "connected": bool(row),
-        "email": row['email'] if row else None,
+        "connected": bool(rows),
+        "accounts": [r['email'] for r in rows],
+        "email": rows[0]['email'] if rows else None,
     })
 
 @app.route('/api/career/gmail-disconnect', methods=['POST'])
 @login_required
 def gmail_disconnect():
+    data = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip()
     try:
         conn = get_db()
         c = conn.cursor()
-        c.execute('DELETE FROM gmail_connection')
+        if email:
+            c.execute('DELETE FROM gmail_connection WHERE email = %s', (email,))
+        else:
+            c.execute('DELETE FROM gmail_connection')
         conn.commit()
         conn.close()
     except Exception as e:
@@ -1181,8 +1205,8 @@ def reset_gmail_filter():
 @app.route('/api/career/gmail-inbox', methods=['GET'])
 @login_required
 def gmail_inbox():
-    token = get_valid_gmail_access_token()
-    if not token:
+    accounts = get_gmail_rows()
+    if not accounts:
         return jsonify({"connected": False, "messages": []})
 
     mode = request.args.get('mode', 'filtered')
@@ -1197,38 +1221,60 @@ def gmail_inbox():
     else:
         query = get_active_job_filter_query()
 
-    try:
-        list_res = requests.get(
-            'https://gmail.googleapis.com/gmail/v1/users/me/messages',
-            headers={'Authorization': f'Bearer {token}'},
-            params={'q': query, 'maxResults': 25},
-            timeout=15
-        )
-        data = list_res.json()
-        if 'error' in data:
-            return jsonify({"connected": True, "messages": [], "error": data['error'].get('message', 'Gmail API error')})
-        msgs = []
-        for m in data.get('messages', [])[:25]:
-            detail = requests.get(
-                f'https://gmail.googleapis.com/gmail/v1/users/me/messages/{m["id"]}',
+    all_msgs = []
+    account_errors = []
+
+    for account in accounts:
+        account_email = account['email']
+        token = get_valid_gmail_access_token(account_email)
+        if not token:
+            account_errors.append(f"{account_email}: could not refresh token")
+            continue
+        try:
+            list_res = requests.get(
+                'https://gmail.googleapis.com/gmail/v1/users/me/messages',
                 headers={'Authorization': f'Bearer {token}'},
-                params={'format': 'metadata', 'metadataHeaders': ['Subject', 'From', 'Date']},
+                params={'q': query, 'maxResults': 25},
                 timeout=15
-            ).json()
-            headers_list = detail.get('payload', {}).get('headers', [])
-            hmap = {h['name']: h['value'] for h in headers_list}
-            msgs.append({
-                "id": m['id'],
-                "subject": hmap.get('Subject', '(no subject)'),
-                "from": hmap.get('From', ''),
-                "date": hmap.get('Date', ''),
-                "snippet": detail.get('snippet', ''),
-                "link": f"https://mail.google.com/mail/u/0/#inbox/{m['id']}",
-            })
-        return jsonify({"connected": True, "messages": msgs, "mode": mode})
-    except Exception as e:
-        print("Gmail fetch error:", e)
-        return jsonify({"connected": True, "messages": [], "error": str(e)})
+            )
+            data = list_res.json()
+            if 'error' in data:
+                account_errors.append(f"{account_email}: {data['error'].get('message', 'Gmail API error')}")
+                continue
+            for m in data.get('messages', [])[:25]:
+                detail = requests.get(
+                    f'https://gmail.googleapis.com/gmail/v1/users/me/messages/{m["id"]}',
+                    headers={'Authorization': f'Bearer {token}'},
+                    params={'format': 'metadata', 'metadataHeaders': ['Subject', 'From', 'Date']},
+                    timeout=15
+                ).json()
+                headers_list = detail.get('payload', {}).get('headers', [])
+                hmap = {h['name']: h['value'] for h in headers_list}
+                all_msgs.append({
+                    "id": m['id'],
+                    "subject": hmap.get('Subject', '(no subject)'),
+                    "from": hmap.get('From', ''),
+                    "date": hmap.get('Date', ''),
+                    "snippet": detail.get('snippet', ''),
+                    "link": f"https://mail.google.com/mail/u/0/#inbox/{m['id']}",
+                    "account": account_email,
+                    "internal_ts": detail.get('internalDate'),
+                })
+        except Exception as e:
+            print(f"Gmail fetch error ({account_email}):", e)
+            account_errors.append(f"{account_email}: {str(e)}")
+
+    try:
+        all_msgs.sort(key=lambda m: int(m.get('internal_ts') or 0), reverse=True)
+    except Exception:
+        pass
+    for m in all_msgs:
+        m.pop('internal_ts', None)
+
+    result = {"connected": True, "messages": all_msgs, "mode": mode, "accounts": [a['email'] for a in accounts]}
+    if account_errors and not all_msgs:
+        result["error"] = "; ".join(account_errors)
+    return jsonify(result)
 
 # ── DOCUMENTS (Google Drive) ──────────────────────────────
 

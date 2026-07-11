@@ -129,6 +129,15 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .gmail-msg-snippet{font-size:11.5px;color:var(--text2);line-height:1.4}
 .gmail-msg-date{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:4px}
 .gmail-msg-link{font-size:10px;color:var(--green);text-decoration:none;font-family:'JetBrains Mono',monospace;margin-top:4px;display:inline-block}
+.gmail-msg-account{display:inline-block;background:var(--green-glow);color:var(--green);font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:6px;margin-bottom:5px}
+
+.account-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.account-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:5px 8px;font-size:10.5px;font-family:'JetBrains Mono',monospace;color:var(--text2)}
+.account-chip-x{cursor:pointer;color:var(--text3);font-weight:700}
+.account-chip-x:hover{color:var(--red)}
+.add-account-row{display:flex;gap:8px;margin-bottom:12px}
+.add-account-row input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px}
+.add-account-row input:focus{outline:none;border-color:var(--green3)}
 .gmail-empty{font-size:11.5px;color:var(--text3);text-align:center;padding:16px 0}
 
 .filter-edit-toggle{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;cursor:pointer;text-decoration:underline;margin-bottom:8px;display:inline-block}
@@ -771,25 +780,39 @@ async function loadGmailCard(){
         <button class="btn btn-cal" disabled>🔒 Connect Gmail (needs setup)</button>`;
       return;
     }
+
+    const accounts = status.accounts || [];
+    const accountChips = accounts.map(a => `
+      <span class="account-chip">${esc(a)}
+        <span class="account-chip-x" onclick="disconnectGmailAccount('${esc(a)}')" title="Disconnect">✕</span>
+      </span>`).join('');
+    const addAccountRow = `
+      <div class="add-account-row">
+        <input type="email" id="newGmailAccountInput" placeholder="another.email@example.com" value="${accounts.length ? '' : 'perrywigginsjack@gmail.com'}">
+        <button class="btn btn-call" onclick="connectAnotherGmailAccount()">🔗 Connect</button>
+      </div>`;
+
     if(!status.connected){
       dot.classList.remove('on');
       sub.innerHTML = `Not connected yet — tap to connect.`;
-      body.innerHTML = `<div class="gmail-empty">Authorize <b>${status.email || 'perrywigginsjack@gmail.com'}</b> — read-only access, filtered to job-related mail only.</div>
-        <button class="btn btn-call" onclick="window.location.href='/auth/gmail/connect'">🔗 Connect Gmail</button>`;
+      body.innerHTML = `<div class="gmail-empty">Authorize a Gmail/Google account — read-only access, filtered to job-related mail only.</div>${addAccountRow}`;
       return;
     }
     dot.classList.add('on');
     gmailMode = 'filtered';
     gmailSearchTerm = '';
-    sub.innerHTML = `Connected as <b>${status.email}</b> — tap to view.`;
+    sub.innerHTML = `Connected: ${accounts.length} account${accounts.length===1?'':'s'} — tap to view.`;
     body.innerHTML = `
+      <div class="account-chips">${accountChips}</div>
+      ${addAccountRow}
+
       <div class="mode-toggle" id="gmailModeToggle">
         <button class="mode-btn" data-mode="all" onclick="switchGmailMode('all')">📥 All</button>
         <button class="mode-btn active" data-mode="filtered" onclick="switchGmailMode('filtered')">🎯 Filtered</button>
         <button class="mode-btn" data-mode="search" onclick="switchGmailMode('search')">🔍 Search</button>
       </div>
 
-      <div class="gmail-sub" id="filteredModeInfo" style="margin-bottom:6px">Showing employer replies (interviews, application status, offers) — LinkedIn/Indeed job-alert noise and known marketing senders filtered out.<span class="gmail-filter-tag">filter · last 60 days</span></div>
+      <div class="gmail-sub" id="filteredModeInfo" style="margin-bottom:6px">Showing employer replies (interviews, application status, offers) across all connected accounts — LinkedIn/Indeed job-alert noise and known marketing senders filtered out.<span class="gmail-filter-tag">filter · last 60 days</span></div>
       <span class="filter-edit-toggle" id="filteredModeEditToggle" onclick="event.stopPropagation(); toggleFilterEditor()">✏️ Edit filter</span>
       <div class="filter-edit-box" id="filterEditBox" style="display:none">
         <div class="gmail-empty" style="text-align:left;padding:0 0 8px 0">Uses real Gmail search syntax (same as the Gmail search bar). Can't be empty — to broaden results, try something like <code>newer_than:30d</code> instead of clearing it entirely, or use the "All" / "Search" tabs above.</div>
@@ -801,19 +824,18 @@ async function loadGmailCard(){
         <div class="filter-status" id="filterSaveStatus"></div>
       </div>
 
-      <div class="gmail-sub" id="allModeInfo" style="margin-bottom:10px;display:none">Showing the most recent inbox messages, unfiltered.</div>
+      <div class="gmail-sub" id="allModeInfo" style="margin-bottom:10px;display:none">Showing the most recent inbox messages across all connected accounts, unfiltered.</div>
 
       <div id="searchModeBox" style="display:none;margin-bottom:10px">
         <div class="search-row">
           <input type="text" id="gmailSearchInput" placeholder="e.g. from:safehorizon.org OR interview" onkeydown="if(event.key==='Enter') runGmailSearch()">
           <button class="btn btn-call" onclick="runGmailSearch()">Go</button>
         </div>
-        <div class="gmail-empty" style="text-align:left;padding:6px 0 0 0">Real Gmail search syntax — any term, sender, or subject.</div>
+        <div class="gmail-empty" style="text-align:left;padding:6px 0 0 0">Real Gmail search syntax — searches every connected account.</div>
       </div>
 
       <div class="lead-actions" style="margin-bottom:12px">
         <button class="btn btn-cal" onclick="loadGmailInbox()">🔄 Refresh</button>
-        <button class="btn btn-cal" onclick="disconnectGmail()">🔌 Disconnect</button>
       </div>
       <div id="gmailMessages"><div class="gmail-empty">Loading messages…</div></div>`;
     loadGmailInbox();
@@ -821,6 +843,23 @@ async function loadGmailCard(){
   }catch(e){
     document.getElementById('gmailSub').textContent = 'Could not check Gmail connection status.';
   }
+}
+
+function connectAnotherGmailAccount(){
+  const input = document.getElementById('newGmailAccountInput');
+  const email = input ? input.value.trim() : '';
+  const params = email ? ('?email=' + encodeURIComponent(email)) : '';
+  window.location.href = '/auth/gmail/connect' + params;
+}
+
+async function disconnectGmailAccount(email){
+  if(!confirm(`Disconnect ${email}?`)) return;
+  await fetch('/api/career/gmail-disconnect', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email})
+  });
+  loadGmailCard();
 }
 
 function toggleFilterEditor(){
@@ -930,6 +969,7 @@ async function loadGmailInbox(){
     }
     container.innerHTML = data.messages.map(m => `
       <div class="gmail-msg">
+        ${m.account ? `<div class="gmail-msg-account">${esc(m.account)}</div>` : ''}
         <div class="gmail-msg-subject">${esc(m.subject)}</div>
         <div class="gmail-msg-from">${esc(m.from)}</div>
         <div class="gmail-msg-snippet">${esc(m.snippet)}</div>
@@ -939,11 +979,6 @@ async function loadGmailInbox(){
   }catch(e){
     container.innerHTML = '<div class="gmail-empty">Could not load messages.</div>';
   }
-}
-
-async function disconnectGmail(){
-  await fetch('/api/career/gmail-disconnect', {method:'POST'});
-  loadGmailCard();
 }
 
 // ---- Spotify ----
