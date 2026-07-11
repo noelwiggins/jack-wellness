@@ -148,6 +148,9 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .filter-status{font-size:10.5px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:6px;font-weight:700}
 .filter-status.error{color:var(--red)}
 .filter-status.success{color:var(--green)}
+.add-status{font-size:10.5px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:4px;font-weight:700;min-height:14px}
+.add-status.error{color:var(--red)}
+.add-status.success{color:var(--green)}
 
 .mode-toggle{display:flex;gap:6px;margin-bottom:10px;background:var(--bg3);border-radius:10px;padding:4px}
 .mode-btn{flex:1;background:none;border:none;border-radius:8px;padding:8px 6px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text3);cursor:pointer;transition:all .15s}
@@ -200,6 +203,26 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .cal-event-loc{font-size:10.5px;color:var(--text2);margin-top:2px}
 .cal-empty-day{font-size:11px;color:var(--text3);padding:4px 0;font-style:italic}
 
+.task-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.task-item:last-child{border-bottom:none}
+.task-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border2);background:var(--bg3);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:transparent;margin-top:1px}
+.task-check.done{background:var(--green-glow);border-color:var(--green);color:var(--green)}
+.task-info{flex:1;min-width:0}
+.task-title{font-size:13px;font-weight:700;color:var(--text)}
+.task-title.done{text-decoration:line-through;color:var(--text3)}
+.task-notes{font-size:11px;color:var(--text2);margin-top:2px}
+.task-meta{display:flex;gap:8px;align-items:center;margin-top:3px}
+.task-due{font-size:9.5px;color:var(--amber);font-family:'JetBrains Mono',monospace}
+.task-account{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;background:var(--bg3);padding:1px 6px;border-radius:5px}
+.task-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 6px;flex-shrink:0}
+.task-del:hover{color:var(--red)}
+
+.new-item-form{background:var(--bg3);border-radius:10px;padding:10px;margin-bottom:12px}
+.new-item-form input,.new-item-form textarea,.new-item-form select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);font-family:'Nunito',sans-serif;font-size:12.5px;margin-bottom:7px}
+.new-item-form textarea{min-height:50px;resize:vertical}
+.new-item-row{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.new-item-toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);margin-bottom:7px}
+
 .chevron{font-size:12px;color:var(--text3);transition:transform .2s;flex-shrink:0}
 .chevron.open{transform:rotate(180deg)}
 .collapsible-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
@@ -242,11 +265,24 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 <nav class="nav">
   <button class="nav-back" onclick="window.location.href='/wellness'">🌿 WELLNESS</button>
   <div class="nav-logo">Career Office</div>
+  <button class="nav-back" onclick="toggleTasksPanel()">✅ TASKS</button>
   <button class="nav-back" onclick="toggleCalendarPanel()">📅 CALENDAR</button>
   <button class="nav-back" onclick="toggleSpotifyPanel()">🎵 SPOTIFY</button>
   <button class="nav-back" onclick="window.location.href='/videos'">🎬 VIDEOS</button>
   <button class="nav-back" onclick="window.location.href='/documents'">📁 DOCS</button>
 </nav>
+
+<div class="spotify-panel" id="tasksPanel">
+  <div class="spotify-panel-inner">
+    <div class="spotify-head">
+      <span class="spotify-icon">✅</span>
+      <span class="spotify-title">To-Do List (Google Tasks)</span>
+      <button class="spotify-panel-close" onclick="toggleTasksPanel()">✕</button>
+    </div>
+    <div class="spotify-sub" id="tasksSub">Checking connection…</div>
+    <div id="tasksBody"></div>
+  </div>
+</div>
 
 <div class="spotify-panel" id="calendarPanel">
   <div class="spotify-panel-inner">
@@ -1206,9 +1242,148 @@ function toggleSpotifyPanel(){
   }
 }
 
+// ---- Tasks (Google Tasks) ----
+let tasksLoaded = false;
+let tasksAccountsCache = [];
+
+function toggleTasksPanel(){
+  const panel = document.getElementById('tasksPanel');
+  panel.classList.toggle('open');
+  if(panel.classList.contains('open') && !tasksLoaded){
+    tasksLoaded = true;
+    loadTasksPanel();
+  }
+}
+
+function accountSelectOptions(accounts, selected){
+  return accounts.map(a => `<option value="${esc(a)}" ${a===selected?'selected':''}>${esc(a)}</option>`).join('');
+}
+
+async function loadTasksPanel(){
+  const sub = document.getElementById('tasksSub');
+  const body = document.getElementById('tasksBody');
+  try{
+    const res = await fetch('/api/career/tasks');
+    const data = await res.json();
+
+    if(!data.connected){
+      sub.innerHTML = 'Not connected yet. Connect Gmail on the Career Office page first — Tasks uses the same accounts.';
+      body.innerHTML = '';
+      return;
+    }
+
+    if(data.error && (!data.tasks || !data.tasks.length)){
+      if(data.needs_enable_api){
+        sub.innerHTML = `The Google Tasks API hasn't been turned on yet in the Google Cloud project.`;
+        body.innerHTML = `
+          ${data.enable_url ? `<a class="btn btn-call" href="${esc(data.enable_url)}" target="_blank" rel="noopener">🔧 Enable Tasks API</a>` : ''}
+          <button class="btn btn-cal" onclick="loadTasksPanel()">🔄 Retry after enabling</button>`;
+        return;
+      }
+      if(data.needs_reauth){
+        sub.innerHTML = `One or more accounts need to reconnect to grant Tasks access.`;
+        body.innerHTML = `<div class="gmail-empty">Go to the Job Responses (Gmail) card, disconnect and reconnect each account to add Tasks permission.</div>`;
+        return;
+      }
+      sub.innerHTML = `Connected, but couldn't load tasks: ${esc(data.error)}`;
+      body.innerHTML = '';
+      return;
+    }
+
+    tasksAccountsCache = data.accounts || [];
+    sub.innerHTML = `Connected: ${tasksAccountsCache.length} account${tasksAccountsCache.length===1?'':'s'}.`;
+
+    const addForm = `
+      <div class="new-item-form">
+        <input type="text" id="newTaskTitle" placeholder="Task title">
+        ${tasksAccountsCache.length > 1 ? `<select id="newTaskAccount">${accountSelectOptions(tasksAccountsCache)}</select>` : ''}
+        <div class="new-item-row">
+          <input type="date" id="newTaskDue">
+          <button class="btn btn-call" onclick="submitNewTask()">➕ Add Task</button>
+        </div>
+        <div class="add-status" id="newTaskStatus"></div>
+      </div>`;
+
+    if(!data.tasks || !data.tasks.length){
+      body.innerHTML = addForm + `<div class="gmail-empty">No tasks yet.</div>`;
+      return;
+    }
+
+    const taskListHtml = data.tasks.map(t => `
+      <div class="task-item">
+        <div class="task-check ${t.completed ? 'done':''}" onclick="toggleTaskComplete('${t.id}', '${esc(t.account)}', ${t.completed})">✓</div>
+        <div class="task-info">
+          <div class="task-title ${t.completed ? 'done':''}">${esc(t.title)}</div>
+          ${t.notes ? `<div class="task-notes">${esc(t.notes)}</div>` : ''}
+          <div class="task-meta">
+            ${t.due ? `<span class="task-due">Due ${new Date(t.due).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>` : ''}
+            ${tasksAccountsCache.length > 1 ? `<span class="task-account">${esc(t.account)}</span>` : ''}
+          </div>
+        </div>
+        <button class="task-del" onclick="deleteTaskItem('${t.id}', '${esc(t.account)}')">🗑</button>
+      </div>`).join('');
+
+    body.innerHTML = addForm + taskListHtml;
+  }catch(e){
+    sub.textContent = 'Could not load tasks.';
+    body.innerHTML = '';
+  }
+}
+
+async function submitNewTask(){
+  const title = document.getElementById('newTaskTitle').value.trim();
+  const due = document.getElementById('newTaskDue').value;
+  const accountSelect = document.getElementById('newTaskAccount');
+  const account = accountSelect ? accountSelect.value : (tasksAccountsCache[0] || '');
+  const status = document.getElementById('newTaskStatus');
+
+  if(!title){
+    status.textContent = '⚠ Title is required.';
+    status.className = 'add-status error';
+    return;
+  }
+  try{
+    const res = await fetch('/api/career/tasks', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({title, due, account})
+    });
+    const data = await res.json();
+    if(!res.ok || data.error){
+      status.textContent = '✗ ' + (data.error || 'Could not add task.');
+      status.className = 'add-status error';
+      return;
+    }
+    loadTasksPanel();
+  }catch(e){
+    status.textContent = '✗ Could not add task.';
+    status.className = 'add-status error';
+  }
+}
+
+async function toggleTaskComplete(id, account, currentlyCompleted){
+  try{
+    await fetch(`/api/career/tasks/${id}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({completed: !currentlyCompleted, account})
+    });
+    loadTasksPanel();
+  }catch(e){}
+}
+
+async function deleteTaskItem(id, account){
+  if(!confirm('Remove this task?')) return;
+  try{
+    await fetch(`/api/career/tasks/${id}?account=${encodeURIComponent(account)}`, {method: 'DELETE'});
+    loadTasksPanel();
+  }catch(e){}
+}
+
 // ---- Calendar ----
 let calendarLoaded = false;
 let calWeekStartOverride = null; // YYYY-MM-DD or null for "this week"
+let calAccountsCache = [];
 
 function toggleCalendarPanel(){
   const panel = document.getElementById('calendarPanel');
@@ -1291,6 +1466,7 @@ async function loadCalendarWeek(){
     }
 
     const accounts = data.accounts || [];
+    calAccountsCache = accounts;
     const legend = accounts.map(a => {
       const color = (data.events.find(e=>e.account===a) || {}).color || '#9BB09D';
       return `<span class="cal-legend-item"><span class="cal-legend-dot" style="background:${color}"></span>${esc(a)}</span>`;
@@ -1329,10 +1505,93 @@ async function loadCalendarWeek(){
       daysHtml += `</div>`;
     });
 
-    body.innerHTML = nav + `<div class="cal-legend">${legend}</div>` + daysHtml;
+    const newEventForm = `
+      <span class="filter-edit-toggle" onclick="toggleNewEventForm()">➕ New Event</span>
+      <div class="filter-edit-box" id="newEventBox" style="display:none">
+        <div class="new-item-form">
+          <input type="text" id="newEventTitle" placeholder="Event title">
+          <div class="new-item-toggle">
+            <input type="checkbox" id="newEventAllDay" onchange="toggleNewEventAllDay()"> All-day event
+          </div>
+          <div class="new-item-row" id="newEventDateRow">
+            <input type="date" id="newEventDate">
+            <input type="date" id="newEventDateEnd" placeholder="End date (optional)">
+          </div>
+          <div class="new-item-row" id="newEventTimeRow">
+            <input type="time" id="newEventStartTime" value="09:00">
+            <input type="time" id="newEventEndTime" value="10:00">
+          </div>
+          <input type="text" id="newEventLocation" placeholder="Location (optional)">
+          <textarea id="newEventDescription" placeholder="Description (optional)"></textarea>
+          ${calAccountsCache.length > 1 ? `<select id="newEventAccount">${accountSelectOptions(calAccountsCache)}</select>` : ''}
+          <button class="btn btn-call" onclick="submitNewEvent()">💾 Create Event</button>
+          <div class="add-status" id="newEventStatus"></div>
+        </div>
+      </div>`;
+
+    body.innerHTML = nav + newEventForm + `<div class="cal-legend">${legend}</div>` + daysHtml;
   }catch(e){
     sub.textContent = 'Could not load calendar.';
     body.innerHTML = '';
+  }
+}
+
+function toggleNewEventForm(){
+  const box = document.getElementById('newEventBox');
+  if(box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleNewEventAllDay(){
+  const isAllDay = document.getElementById('newEventAllDay').checked;
+  document.getElementById('newEventTimeRow').style.display = isAllDay ? 'none' : 'grid';
+}
+
+async function submitNewEvent(){
+  const title = document.getElementById('newEventTitle').value.trim();
+  const allDay = document.getElementById('newEventAllDay').checked;
+  const date = document.getElementById('newEventDate').value;
+  const dateEnd = document.getElementById('newEventDateEnd').value;
+  const startTime = document.getElementById('newEventStartTime').value;
+  const endTime = document.getElementById('newEventEndTime').value;
+  const location = document.getElementById('newEventLocation').value.trim();
+  const description = document.getElementById('newEventDescription').value.trim();
+  const accountSelect = document.getElementById('newEventAccount');
+  const account = accountSelect ? accountSelect.value : (calAccountsCache[0] || '');
+  const status = document.getElementById('newEventStatus');
+
+  if(!title || !date){
+    status.textContent = '⚠ Title and date are required.';
+    status.className = 'add-status error';
+    return;
+  }
+
+  const payload = {title, location, description, account, all_day: allDay};
+  if(allDay){
+    payload.start = date;
+    payload.end = dateEnd || date;
+  } else {
+    payload.start = `${date}T${startTime}:00`;
+    payload.end = `${date}T${endTime}:00`;
+  }
+
+  try{
+    const res = await fetch('/api/career/calendar-events', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(!res.ok || data.error){
+      status.textContent = '✗ ' + (data.error || 'Could not create event.');
+      status.className = 'add-status error';
+      return;
+    }
+    status.textContent = '✓ Event created!';
+    status.className = 'add-status success';
+    setTimeout(loadCalendarWeek, 700);
+  }catch(e){
+    status.textContent = '✗ Could not create event.';
+    status.className = 'add-status error';
   }
 }
 

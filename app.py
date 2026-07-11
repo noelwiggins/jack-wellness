@@ -47,7 +47,7 @@ GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', 'https://jack-wellness.up.railway.app/auth/gmail/callback')
 GMAIL_TARGET_EMAIL = 'perrywigginsjack@gmail.com'
-GOOGLE_OAUTH_SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/calendar.readonly'
+GOOGLE_OAUTH_SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks'
 DEFAULT_JOB_FILTER_QUERY = (
     '(subject:("your application" OR "thank you for applying") OR '
     'subject:("thank you for your interest") OR subject:("regarding your application") OR '
@@ -1413,6 +1413,235 @@ def calendar_week():
         result["needs_reauth"] = needs_reauth
         result["enable_url"] = enable_url
     return jsonify(result)
+
+# ── GOOGLE TASKS (merged across accounts) ─────────────────
+
+@app.route('/api/career/tasks', methods=['GET'])
+@login_required
+def get_tasks():
+    accounts = get_gmail_rows()
+    if not accounts:
+        return jsonify({"connected": False, "tasks": []})
+
+    all_tasks = []
+    account_errors = []
+    needs_enable_api = False
+    needs_reauth = False
+    enable_url = None
+
+    for account in accounts:
+        account_email = account['email']
+        token = get_valid_gmail_access_token(account_email)
+        if not token:
+            continue
+        try:
+            res = requests.get(
+                'https://tasks.googleapis.com/tasks/v1/lists/@default/tasks',
+                headers={'Authorization': f'Bearer {token}'},
+                params={'showCompleted': 'true', 'showHidden': 'true', 'maxResults': 100},
+                timeout=15
+            )
+            data = res.json()
+            if 'error' in data:
+                msg = data['error'].get('message', 'Tasks API error')
+                msg_lower = msg.lower()
+                acct_needs_enable = 'has not been used' in msg_lower or 'it is disabled' in msg_lower or 'accessnotconfigured' in msg_lower
+                acct_needs_reauth = (not acct_needs_enable) and ('insufficient' in msg_lower or 'scope' in msg_lower)
+                if acct_needs_enable:
+                    needs_enable_api = True
+                    import re as _re
+                    url_match = _re.search(r'https://console\.developers\.google\.com\S+', msg)
+                    if url_match and not enable_url:
+                        enable_url = url_match.group(0).rstrip('.')
+                if acct_needs_reauth:
+                    needs_reauth = True
+                account_errors.append(f"{account_email}: {msg}")
+                continue
+            for t in data.get('items', []):
+                all_tasks.append({
+                    "id": t.get('id'),
+                    "title": t.get('title', '(untitled)'),
+                    "notes": t.get('notes', ''),
+                    "due": t.get('due'),
+                    "completed": t.get('status') == 'completed',
+                    "account": account_email,
+                })
+        except Exception as e:
+            print(f"Tasks fetch error ({account_email}):", e)
+            account_errors.append(f"{account_email}: {str(e)}")
+
+    try:
+        all_tasks.sort(key=lambda t: (t['completed'], t.get('due') or '9999'))
+    except Exception:
+        pass
+
+    result = {"connected": True, "tasks": all_tasks, "accounts": [a['email'] for a in accounts]}
+    if account_errors and not all_tasks:
+        result["error"] = "; ".join(account_errors)
+        result["needs_enable_api"] = needs_enable_api
+        result["needs_reauth"] = needs_reauth
+        result["enable_url"] = enable_url
+    return jsonify(result)
+
+@app.route('/api/career/tasks', methods=['POST'])
+@login_required
+def create_task():
+    data = request.get_json(force=True) or {}
+    account_email = (data.get('account') or '').strip()
+    title = (data.get('title') or '').strip()
+    notes = (data.get('notes') or '').strip()
+    due = (data.get('due') or '').strip()
+
+    if not title:
+        return jsonify({"error": "Title is required."}), 400
+    if not account_email:
+        accounts = get_gmail_rows()
+        if not accounts:
+            return jsonify({"error": "No connected account."}), 400
+        account_email = accounts[0]['email']
+
+    token = get_valid_gmail_access_token(account_email)
+    if not token:
+        return jsonify({"error": f"Could not get a valid token for {account_email}."}), 400
+
+    body = {"title": title}
+    if notes:
+        body["notes"] = notes
+    if due:
+        body["due"] = due + "T00:00:00.000Z"
+
+    try:
+        res = requests.post(
+            'https://tasks.googleapis.com/tasks/v1/lists/@default/tasks',
+            headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+            json=body,
+            timeout=15
+        )
+        result = res.json()
+        if 'error' in result:
+            return jsonify({"error": result['error'].get('message', 'Could not create task.')}), 400
+        return jsonify({
+            "id": result.get('id'),
+            "title": result.get('title'),
+            "notes": result.get('notes', ''),
+            "due": result.get('due'),
+            "completed": False,
+            "account": account_email,
+        })
+    except Exception as e:
+        print("Create task error:", e)
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/career/tasks/<task_id>', methods=['POST'])
+@login_required
+def update_task(task_id):
+    data = request.get_json(force=True) or {}
+    account_email = (data.get('account') or '').strip()
+    if not account_email:
+        return jsonify({"error": "Account is required."}), 400
+    token = get_valid_gmail_access_token(account_email)
+    if not token:
+        return jsonify({"error": f"Could not get a valid token for {account_email}."}), 400
+
+    body = {}
+    if 'completed' in data:
+        body['status'] = 'completed' if data['completed'] else 'needsAction'
+
+    try:
+        res = requests.patch(
+            f'https://tasks.googleapis.com/tasks/v1/lists/@default/tasks/{task_id}',
+            headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+            json=body,
+            timeout=15
+        )
+        result = res.json()
+        if 'error' in result:
+            return jsonify({"error": result['error'].get('message', 'Could not update task.')}), 400
+        return jsonify({"ok": True})
+    except Exception as e:
+        print("Update task error:", e)
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/career/tasks/<task_id>', methods=['DELETE'])
+@login_required
+def delete_task(task_id):
+    account_email = request.args.get('account', '').strip()
+    if not account_email:
+        return jsonify({"error": "Account is required."}), 400
+    token = get_valid_gmail_access_token(account_email)
+    if not token:
+        return jsonify({"error": f"Could not get a valid token for {account_email}."}), 400
+    try:
+        requests.delete(
+            f'https://tasks.googleapis.com/tasks/v1/lists/@default/tasks/{task_id}',
+            headers={'Authorization': f'Bearer {token}'},
+            timeout=15
+        )
+        return jsonify({"ok": True})
+    except Exception as e:
+        print("Delete task error:", e)
+        return jsonify({"error": str(e)}), 500
+
+# ── CREATE CALENDAR EVENTS ─────────────────────────────────
+
+@app.route('/api/career/calendar-events', methods=['POST'])
+@login_required
+def create_calendar_event():
+    data = request.get_json(force=True) or {}
+    account_email = (data.get('account') or '').strip()
+    title = (data.get('title') or '').strip()
+    start = (data.get('start') or '').strip()
+    end = (data.get('end') or '').strip()
+    description = (data.get('description') or '').strip()
+    location = (data.get('location') or '').strip()
+    all_day = bool(data.get('all_day'))
+
+    if not title or not start:
+        return jsonify({"error": "Title and start time are required."}), 400
+    if not account_email:
+        accounts = get_gmail_rows()
+        if not accounts:
+            return jsonify({"error": "No connected account."}), 400
+        account_email = accounts[0]['email']
+
+    token = get_valid_gmail_access_token(account_email)
+    if not token:
+        return jsonify({"error": f"Could not get a valid token for {account_email}."}), 400
+
+    body = {"summary": title}
+    if description:
+        body["description"] = description
+    if location:
+        body["location"] = location
+
+    if all_day:
+        body["start"] = {"date": start}
+        body["end"] = {"date": end or start}
+    else:
+        tz = 'America/New_York'
+        body["start"] = {"dateTime": start, "timeZone": tz}
+        body["end"] = {"dateTime": end or start, "timeZone": tz}
+
+    try:
+        res = requests.post(
+            'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+            headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+            json=body,
+            timeout=15
+        )
+        result = res.json()
+        if 'error' in result:
+            return jsonify({"error": result['error'].get('message', 'Could not create event.')}), 400
+        return jsonify({
+            "ok": True,
+            "id": result.get('id'),
+            "title": result.get('summary'),
+            "link": result.get('htmlLink'),
+            "account": account_email,
+        })
+    except Exception as e:
+        print("Create calendar event error:", e)
+        return jsonify({"error": str(e)}), 500
 
 # ── DOCUMENTS (Google Drive) ──────────────────────────────
 
