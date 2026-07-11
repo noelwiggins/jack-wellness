@@ -1336,6 +1336,9 @@ def calendar_week():
 
     all_events = []
     account_errors = []
+    needs_enable_api = False
+    needs_reauth = False
+    enable_url = None
 
     for account in accounts:
         account_email = account['email']
@@ -1360,9 +1363,17 @@ def calendar_week():
             if 'error' in data:
                 msg = data['error'].get('message', 'Calendar API error')
                 msg_lower = msg.lower()
-                needs_enable_api = 'has not been used' in msg_lower or 'it is disabled' in msg_lower or 'accessnotconfigured' in msg_lower
-                needs_reauth = (not needs_enable_api) and ('insufficient' in msg_lower or 'scope' in msg_lower)
-                account_errors.append(f"{account_email}: {msg}" + (' [needs_enable_api]' if needs_enable_api else ' [needs_reauth]' if needs_reauth else ''))
+                acct_needs_enable = 'has not been used' in msg_lower or 'it is disabled' in msg_lower or 'accessnotconfigured' in msg_lower
+                acct_needs_reauth = (not acct_needs_enable) and ('insufficient' in msg_lower or 'scope' in msg_lower)
+                if acct_needs_enable:
+                    needs_enable_api = True
+                    import re as _re
+                    url_match = _re.search(r'https://console\.developers\.google\.com\S+', msg)
+                    if url_match and not enable_url:
+                        enable_url = url_match.group(0).rstrip('.')
+                if acct_needs_reauth:
+                    needs_reauth = True
+                account_errors.append(f"{account_email}: {msg}")
                 continue
             for ev in data.get('items', []):
                 start = ev.get('start', {})
@@ -1398,6 +1409,9 @@ def calendar_week():
     }
     if account_errors and not all_events:
         result["error"] = "; ".join(account_errors)
+        result["needs_enable_api"] = needs_enable_api
+        result["needs_reauth"] = needs_reauth
+        result["enable_url"] = enable_url
     return jsonify(result)
 
 # ── DOCUMENTS (Google Drive) ──────────────────────────────

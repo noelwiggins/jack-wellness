@@ -1272,6 +1272,19 @@ async function loadCalendarWeek(){
     </div>`;
 
     if(data.error && (!data.events || !data.events.length)){
+      if(data.needs_enable_api){
+        sub.innerHTML = `The Google Calendar API hasn't been turned on yet in the Google Cloud project. One-time setup step, not a reconnect issue.`;
+        body.innerHTML = nav + `
+          ${data.enable_url ? `<a class="btn btn-call" href="${esc(data.enable_url)}" target="_blank" rel="noopener">🔧 Enable Calendar API</a>` : ''}
+          <button class="btn btn-cal" onclick="loadCalendarWeek()">🔄 Retry after enabling</button>
+          <div class="gmail-empty" style="margin-top:8px">After enabling, it can take a minute or two to propagate — then tap Retry.</div>`;
+        return;
+      }
+      if(data.needs_reauth){
+        sub.innerHTML = `One or more accounts need to reconnect to grant Calendar access.`;
+        body.innerHTML = nav + `<div class="gmail-empty" style="margin-top:8px">Go to the Job Responses (Gmail) card, disconnect and reconnect each account to add Calendar permission.</div>`;
+        return;
+      }
       sub.innerHTML = `Connected, but couldn't load events: ${esc(data.error)}`;
       body.innerHTML = nav;
       return;
