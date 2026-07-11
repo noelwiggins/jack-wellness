@@ -47,7 +47,7 @@ GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', 'https://jack-wellness.up.railway.app/auth/gmail/callback')
 GMAIL_TARGET_EMAIL = 'perrywigginsjack@gmail.com'
-GOOGLE_OAUTH_SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly'
+GOOGLE_OAUTH_SCOPES = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email'
 DEFAULT_JOB_FILTER_QUERY = (
     '(subject:("your application" OR "thank you for applying") OR '
     'subject:("thank you for your interest") OR subject:("regarding your application") OR '
@@ -1066,7 +1066,7 @@ def gmail_connect():
         'response_type': 'code',
         'scope': GOOGLE_OAUTH_SCOPES,
         'access_type': 'offline',
-        'prompt': 'consent',
+        'prompt': 'select_account consent',
         'login_hint': target_email,
         'state': state,
     }
@@ -1091,13 +1091,19 @@ def gmail_callback():
         access_token = tok.get('access_token')
         refresh_token = tok.get('refresh_token')
         expires_in = tok.get('expires_in', 3600)
-        email = GMAIL_TARGET_EMAIL
+        if not access_token:
+            print("Gmail callback error: no access_token in token response:", tok)
+            return redirect(url_for('index'))
+        email = None
         try:
             ui = requests.get('https://www.googleapis.com/oauth2/v2/userinfo',
                                headers={'Authorization': f'Bearer {access_token}'}, timeout=10)
-            email = ui.json().get('email', GMAIL_TARGET_EMAIL)
-        except Exception:
-            pass
+            email = ui.json().get('email')
+        except Exception as e:
+            print("Gmail callback userinfo error:", e)
+        if not email:
+            print("Gmail callback error: could not determine account email, aborting to avoid mislabeling a token")
+            return redirect(url_for('index'))
         expiry = datetime.utcnow() + timedelta(seconds=expires_in)
         conn = get_db()
         c = conn.cursor()
