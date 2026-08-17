@@ -355,8 +355,8 @@ def ensure_additional_seed_data():
         print("Additional seed error:", e)
 
 # ── PROTOCOL ──────────────────────────────────────────────
-PROTOCOL_VERSION = "1.7.0"
-PROTOCOL_NOTES = "Added Recovery section: home red light sauna daily, bathhouse sauna + cold plunge 3x/week, contrast therapy protocol, TMS day red light timing"
+PROTOCOL_VERSION = "2.0.0"
+PROTOCOL_NOTES = "v2.0 — web search, chat, mic, PANDAS/WHY/LABS tabs, bike safety, PIN auth, research section"
 
 SECTIONS = [
     {
