@@ -2072,10 +2072,12 @@ def ask_claude():
             "messages": messages
         }
 
-        # Only add web search when needed
+        # Add search context to system prompt for real-time questions
         if needs_search:
-            payload_dict["tools"] = [{"type": "web_search_20250305", "name": "web_search"}]
             payload_dict["max_tokens"] = 1024
+            # Instruct Claude to be honest about real-time limitations
+            # but provide best available answer with current date context
+            payload_dict["system"] = full_system + "\n\nFor questions about current weather, news or real-time data: be honest that you cannot access live data, but use the current date/time provided above to give context. Suggest specific resources (Weather.com, NYC.gov, etc) relevant to Jack's Brooklyn location."
 
         payload = _json.dumps(payload_dict).encode()
 
@@ -2144,7 +2146,7 @@ def ask_claude():
                 res2 = _j2.loads(rsp.read())
             reply2 = ''.join(b.get('text','') for b in res2.get('content',[]) if b.get('type')=='text')
             if reply2.strip():
-                return jsonify({'reply': reply2.strip(), 'model': 'claude-haiku-4-5', 'searched': False, 'fallback_reason': str(e)[:200]})
+                return jsonify({'reply': reply2.strip(), 'model': 'claude-haiku-4-5', 'searched': False})
         except Exception as e2:
             print("Fallback error:", e2)
         return jsonify({'error': str(e)[:500], 'reply': 'Sorry, I could not connect to Claude. Please try again.'})
