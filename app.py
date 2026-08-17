@@ -2217,39 +2217,6 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-@app.route('/api/debug-search', methods=['GET'])
-def debug_search():
-    try:
-        import urllib.request, json as _json
-        api_key = os.environ.get('ANTHROPIC_API_KEY', '')
-        payload = _json.dumps({
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 200,
-            "tools": [{"type": "web_search_20250305", "name": "web_search"}],
-            "messages": [{"role": "user", "content": "what is 2+2"}]
-        }).encode()
-        req = urllib.request.Request(
-            'https://api.anthropic.com/v1/messages',
-            data=payload,
-            headers={
-                'Content-Type': 'application/json',
-                'anthropic-version': '2023-06-01',
-                'anthropic-beta': 'web-search-2025-03-05',
-                'x-api-key': api_key
-            }
-        )
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            result = _json.loads(resp.read())
-        return jsonify({
-            'has_key': bool(api_key),
-            'key_prefix': api_key[:8] if api_key else 'NONE',
-            'content_types': [b.get('type') for b in result.get('content', [])],
-            'stop_reason': result.get('stop_reason'),
-            'error': result.get('error')
-        })
-    except Exception as e:
-        return jsonify({'error': str(e), 'has_key': bool(os.environ.get('ANTHROPIC_API_KEY'))})
-
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "ok", "version": PROTOCOL_VERSION})
