@@ -1324,9 +1324,7 @@ function appendMessage(role, text) {
   const bubble = document.createElement('div');
   bubble.className = role === 'user' ? 'ask-msg-user' : 'ask-msg-claude';
   if (role === 'assistant') {
-    // Convert markdown-style formatting
-    bubble.innerHTML = text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.split('\n\n').join('</p><p>');
     html = html.split('\n').join('<br>');
     bubble.innerHTML = '<p>' + html + '</p>';
