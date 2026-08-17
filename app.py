@@ -2063,7 +2063,7 @@ def ask_claude():
         full_system = live_context + context
 
         # Use haiku for simple questions, sonnet for complex/search
-        model = "claude-haiku-4-5" if (not needs_search and len(last_msg) < 80) else "claude-sonnet-4-20250514"
+        model = "claude-haiku-4-5" if (not needs_search and len(last_msg) < 80) else "claude-sonnet-4-5-20250929"
 
         payload_dict = {
             "model": model,
@@ -2072,12 +2072,10 @@ def ask_claude():
             "messages": messages
         }
 
-        # Add search context to system prompt for real-time questions
+        # Add web search for real-time questions
         if needs_search:
             payload_dict["max_tokens"] = 1024
-            # Instruct Claude to be honest about real-time limitations
-            # but provide best available answer with current date context
-            payload_dict["system"] = full_system + "\n\nFor questions about current weather, news or real-time data: be honest that you cannot access live data, but use the current date/time provided above to give context. Suggest specific resources (Weather.com, NYC.gov, etc) relevant to Jack's Brooklyn location."
+            payload_dict["tools"] = [{"type": "web_search_20250305", "name": "web_search", "max_uses": 3}]
 
         payload = _json.dumps(payload_dict).encode()
 
