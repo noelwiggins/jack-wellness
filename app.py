@@ -2119,7 +2119,10 @@ def ask_claude():
         return jsonify({
             'reply': reply.strip() or 'No response received.',
             'model': model,
-            'searched': needs_search
+            'searched': needs_search,
+            'debug_needs_search': needs_search,
+            'debug_last_msg': last_msg[:50],
+            'debug_has_tools': 'tools' in payload_dict
         })
 
     except Exception as e:
