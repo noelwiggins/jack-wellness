@@ -355,7 +355,7 @@ def ensure_additional_seed_data():
         print("Additional seed error:", e)
 
 # ── PROTOCOL ──────────────────────────────────────────────
-PROTOCOL_VERSION = "2.0.0"
+PROTOCOL_VERSION = "2.1.0"
 PROTOCOL_NOTES = "v2.0 — web search, chat, mic, PANDAS/WHY/LABS tabs, bike safety, PIN auth, research section"
 
 SECTIONS = [
