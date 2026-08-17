@@ -2084,10 +2084,6 @@ def ask_claude():
             'anthropic-version': '2023-06-01',
             'x-api-key': os.environ.get('ANTHROPIC_API_KEY', '')
         }
-        # Web search requires beta header
-        if needs_search:
-            headers['anthropic-beta'] = 'web-search-2025-03-05'
-
         req = urllib.request.Request(
             'https://api.anthropic.com/v1/messages',
             data=payload,
