@@ -2051,10 +2051,11 @@ def ask_claude():
         # Detect if question needs real-time data
         last_msg = messages[-1].get('content', '').lower()
         needs_search = any(kw in last_msg for kw in [
-            'weather', 'temperature', 'forecast', 'rain', 'snow', 'today', 'tonight',
-            'news', 'latest', 'current', 'recent', 'right now', 'this week',
-            'research', 'study', 'published', 'new treatment', 'clinical trial',
-            'nyc', 'brooklyn', 'accident', 'alert', 'open', 'closed', 'hours'
+            'weather', 'temperature', 'forecast', 'rain', 'snow',
+            'news', 'right now', 'this week', 'todays weather',
+            'new treatment', 'clinical trial', 'just published',
+            'accident', 'alert', 'currently open', 'hours today',
+            'stock', 'price', 'nyc event', 'brooklyn event'
         ])
 
         current_time = get_brooklyn_time()
@@ -2078,22 +2079,46 @@ def ask_claude():
 
         payload = _json.dumps(payload_dict).encode()
 
+        headers = {
+            'Content-Type': 'application/json',
+            'anthropic-version': '2023-06-01',
+            'x-api-key': os.environ.get('ANTHROPIC_API_KEY', '')
+        }
+        # Web search requires beta header
+        if needs_search:
+            headers['anthropic-beta'] = 'web-search-2025-03-05'
+
         req = urllib.request.Request(
             'https://api.anthropic.com/v1/messages',
             data=payload,
-            headers={
-                'Content-Type': 'application/json',
-                'anthropic-version': '2023-06-01',
-                'x-api-key': os.environ.get('ANTHROPIC_API_KEY', '')
-            }
+            headers=headers
         )
-        with urllib.request.urlopen(req, timeout=45) as resp:
+        with urllib.request.urlopen(req, timeout=55) as resp:
             result = _json.loads(resp.read())
 
         reply = ''
         for block in result.get('content', []):
             if block.get('type') == 'text':
                 reply += block.get('text', '')
+
+        # If search returned no text, fall back without search
+        if not reply.strip() and needs_search:
+            payload_dict.pop('tools', None)
+            payload2 = _json.dumps(payload_dict).encode()
+            req2 = urllib.request.Request(
+                'https://api.anthropic.com/v1/messages',
+                data=payload2,
+                headers={
+                    'Content-Type': 'application/json',
+                    'anthropic-version': '2023-06-01',
+                    'x-api-key': os.environ.get('ANTHROPIC_API_KEY', '')
+                }
+            )
+            with urllib.request.urlopen(req2, timeout=30) as resp2:
+                result2 = _json.loads(resp2.read())
+            for block in result2.get('content', []):
+                if block.get('type') == 'text':
+                    reply += block.get('text', '')
 
         return jsonify({
             'reply': reply.strip() or 'No response received.',
@@ -2103,6 +2128,27 @@ def ask_claude():
 
     except Exception as e:
         print("Ask Claude error:", e)
+        # Try again without web search as fallback
+        try:
+            import urllib.request as _ur2, json as _j2
+            payload_dict2 = {
+                "model": "claude-haiku-4-5",
+                "max_tokens": 800,
+                "system": full_system,
+                "messages": messages
+            }
+            p2 = _j2.dumps(payload_dict2).encode()
+            r2 = _ur2.Request('https://api.anthropic.com/v1/messages', data=p2,
+                headers={'Content-Type': 'application/json',
+                         'anthropic-version': '2023-06-01',
+                         'x-api-key': os.environ.get('ANTHROPIC_API_KEY', '')})
+            with _ur2.urlopen(r2, timeout=20) as rsp:
+                res2 = _j2.loads(rsp.read())
+            reply2 = ''.join(b.get('text','') for b in res2.get('content',[]) if b.get('type')=='text')
+            if reply2.strip():
+                return jsonify({'reply': reply2.strip(), 'model': 'claude-haiku-4-5', 'searched': False})
+        except Exception as e2:
+            print("Fallback error:", e2)
         return jsonify({'error': str(e), 'reply': 'Sorry, I could not connect to Claude. Please try again.'})
 
 @app.route('/api/bike-news', methods=['GET'])
