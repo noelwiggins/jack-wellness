@@ -2123,14 +2123,16 @@ def ask_claude():
         })
 
     except Exception as e:
-        print("Ask Claude error:", e)
+        import traceback
+        err_detail = traceback.format_exc()
+        print("Ask Claude error:", err_detail)
         # Try again without web search as fallback
         try:
             import urllib.request as _ur2, json as _j2
             payload_dict2 = {
                 "model": "claude-haiku-4-5",
                 "max_tokens": 800,
-                "system": full_system,
+                "system": full_system if 'full_system' in dir() else context,
                 "messages": messages
             }
             p2 = _j2.dumps(payload_dict2).encode()
@@ -2142,10 +2144,10 @@ def ask_claude():
                 res2 = _j2.loads(rsp.read())
             reply2 = ''.join(b.get('text','') for b in res2.get('content',[]) if b.get('type')=='text')
             if reply2.strip():
-                return jsonify({'reply': reply2.strip(), 'model': 'claude-haiku-4-5', 'searched': False})
+                return jsonify({'reply': reply2.strip(), 'model': 'claude-haiku-4-5', 'searched': False, 'fallback_reason': str(e)[:200]})
         except Exception as e2:
             print("Fallback error:", e2)
-        return jsonify({'error': str(e), 'reply': 'Sorry, I could not connect to Claude. Please try again.'})
+        return jsonify({'error': str(e)[:500], 'reply': 'Sorry, I could not connect to Claude. Please try again.'})
 
 @app.route('/api/bike-news', methods=['GET'])
 def bike_news():
